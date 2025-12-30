@@ -1,6 +1,8 @@
 
 import { Exhibit, ExhibitId, LogItem, Rank, Rule, GameEvent, Trap, Amendment, StickyNoteDef } from './types';
 
+export const GAME_VERSION = "1.2.0";
+
 export const INITIAL_SAFETY = 80;
 export const INITIAL_INFLUENCE = 0;
 export const INITIAL_STRESS = 0;
@@ -9,8 +11,8 @@ export const LOGS_PER_SHIFT = 8; // Target to clear per shift
 export const MAX_QUEUE_SIZE = 10;
 export const SPAWN_INTERVAL_MS = 8000; // New log every 8 seconds
 
-// Progression: 10 shifts total
-export const SHIFT_DAYS = [1, 2, 3, 7, 14, 30, 60, 120, 240, 365];
+// Progression: 11 shifts total (0 = Tutorial, 1-10 = Main Game)
+export const SHIFT_DAYS = [1, 2, 3, 7, 14, 30, 60, 120, 180, 240, 365];
 
 // --- SUBLIMINAL COMMANDS (Audio) ---
 export const MOG_VOICE_COMMANDS = [

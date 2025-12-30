@@ -1,5 +1,5 @@
 
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { GameState, WeeklyStats, EndingType, Rank, Email } from '../../types';
 import { SHIFT_DAYS, LOGS_PER_SHIFT, TUTORIAL_LOGS } from '../../constants';
 import { 
@@ -60,8 +60,9 @@ const getNarrativeEmail = (gameState: GameState, nextShiftIndex: number): Email 
         if (rank === Rank.LIAISON || rank === Rank.DIRECTOR) return EMAIL_MOG_LADDER_DASHBOARD;
     }
 
-    // WEEK 9-10 ENDGAME (Approx Shift 9)
-    if (nextShiftIndex === 9) {
+    // WEEK 9-10 ENDGAME (Approx Shift 10 - Before the Finale)
+    // Adjusted for 11-shift length (Finale is index 10)
+    if (nextShiftIndex === 10) {
         if (flags.isHardshipStatus) return EMAIL_MOG_HARDSHIP_OWNERSHIP;
         if (flags.hasClippedEvidence) return EMAIL_MOG_ARCHIVIST_FRAME;
         if (flags.mogRapport > 5) return EMAIL_MOG_SYMPATHIZER_IDENTITY;
@@ -90,6 +91,7 @@ export const useShiftSystem = (
             queue: [], 
             logsProcessedInShift: 0, 
             stress: 0, 
+            deferCountShift: 0, // Reset Defer Cooldown daily
             hasTakenLunch: false, 
             dailySafety: 100 
         }));
@@ -117,10 +119,20 @@ export const useShiftSystem = (
   
             // ENDINGS LOGIC (P0)
             if (prev.shiftIndex >= SHIFT_DAYS.length - 1) {
-                // Priority Check for Specific Endings
-                if (prev.flags.mogRapport >= 8 || prev.influence > 90) return { ...prev, gameOverReason: EndingType.OVERRUN, isShiftActive: false };
-                if (prev.flags.hasClippedEvidence && prev.flags.evidenceCount >= 5) return { ...prev, gameOverReason: EndingType.THAWED, isShiftActive: false };
-                if (prev.rank === Rank.DIRECTOR && prev.safety > 40) return { ...prev, gameOverReason: EndingType.MANAGER, isShiftActive: false };
+                // 1. Explicit Win Conditions (Complete Paths)
+                if (prev.flags.mogRapport >= 6 || prev.influence > 85) return { ...prev, gameOverReason: EndingType.OVERRUN, isShiftActive: false };
+                if (prev.flags.hasClippedEvidence && prev.flags.evidenceCount >= 3) return { ...prev, gameOverReason: EndingType.THAWED, isShiftActive: false };
+                if (prev.rank === Rank.DIRECTOR) return { ...prev, gameOverReason: EndingType.MANAGER, isShiftActive: false };
+                
+                // 2. Partial / Unfinished Paths (The Safety Net)
+                // If the player started a path but didn't finish it, give them the Placeholder
+                // instead of the generic "Retirement" ending which feels like a failure.
+                if (prev.flags.mogRapport > 0 || prev.flags.isHardshipStatus || prev.flags.evidenceCount > 0) {
+                     return { ...prev, gameOverReason: EndingType.PLACEHOLDER, isShiftActive: false };
+                }
+
+                // 3. Fallback to True Ending (Retirement) 
+                // Only if the player truly did nothing special (No evidence, no rapport, no hardship).
                 return { ...prev, gameOverReason: EndingType.TRUE_ENDING, isShiftActive: false };
             }
   

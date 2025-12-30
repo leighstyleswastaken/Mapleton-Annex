@@ -47,6 +47,7 @@ const getInitialState = (): GameState => ({
     queue: [],
     logsProcessedInShift: 0,
     deferCountGlobal: 0,
+    deferCountShift: 0, // NEW
     consecutiveCorrect: 0, 
     consecutiveWrong: 0,   
     activeTraps: [],
@@ -57,7 +58,8 @@ const getInitialState = (): GameState => ({
     pendingAmendment: null,
     lastAmendmentLogCount: 0,
     seenStickyNotes: [], 
-    seenLogIds: [], // New Field
+    seenLogIds: [],
+    pastLunchLogs: [], 
     flags: {
         isHardshipStatus: false,
         hasClippedEvidence: false,
@@ -122,12 +124,15 @@ const loadSavedState = (): GameState | null => {
                 stats: { ...initial.stats, ...(parsed.stats || {}) },
                 seenStickyNotes: parsed.seenStickyNotes || [],
                 seenLogIds: parsed.seenLogIds || [],
+                pastLunchLogs: parsed.pastLunchLogs || [],
+                // Safety resets on load to prevent stuck states
                 isShiftActive: false,
                 isShiftEnding: false,
                 isPaused: false,
                 queue: [],
                 logsProcessedInShift: 0,
                 stress: 0,
+                deferCountShift: 0,
                 hasTakenLunch: false,
                 dailySafety: 100,
                 pendingAmendment: null,
@@ -148,8 +153,6 @@ const loadSavedState = (): GameState | null => {
 const getUnseenLog = (pool: LogItem[], seenIds: string[]): LogItem => {
     const available = pool.filter(l => !seenIds.includes(l.id));
     if (available.length === 0) {
-        // Fallback: Just pick random from full pool if we've seen them all
-        // (Prevents hard crash, though repetition occurs)
         return pool[Math.floor(Math.random() * pool.length)];
     }
     return available[Math.floor(Math.random() * available.length)];
@@ -243,7 +246,6 @@ export const useGame = () => {
         };
         setGameState(prev => ({
             ...prev,
-            // Track the base flavor ID to avoid repeating content, even if wrapper ID is unique
             seenLogIds: [...prev.seenLogIds, flavor.id],
             queue: [...prev.queue, uniqueFlavor]
         }));
@@ -271,24 +273,19 @@ export const useGame = () => {
     // --- DIRECTOR INTERVENTION ---
     const instruction = getDirectorDecision(currentState);
     
-    // Pass seenLogIds if we want fallback logs to be unique too
-    // Note: getDirectorFallback logic handles uniqueness if we pass IDs, but for now 
-    // we'll rely on the fact that LLM generation is mostly unique.
-    
+    // Pass seenLogIds to Gemini Service for deduplication
     const result = await generateLogWithGemini(
       instruction,
       currentState.influence,
       !currentState.useLLM,
       currentState.lastInteraction,
-      currentState.shiftIndex
+      currentState.shiftIndex,
+      currentState.seenLogIds // PASSED
     );
-
-    // If result.log came from fallback pool, we should probably track it if we can extract original ID
-    // But since Director Service generates dynamic IDs for fallbacks, strict tracking is harder.
-    // The main repetition annoyance comes from Flavor/Boot/Human logs which we handled above.
 
     setGameState(prev => ({
         ...prev,
+        seenLogIds: [...prev.seenLogIds, result.log.id], // Track new ID
         queue: [...prev.queue, result.log],
         stats: {
             totalTokens: prev.stats.totalTokens + result.tokens,
@@ -345,10 +342,16 @@ export const useGame = () => {
         const queueLen = gameStateRef.current.queue.length;
         
         setGameState(prev => {
+            // FIX: DYNAMIC STRESS ACCRUAL
             let newStress = prev.stress;
-            if (queueLen > 3) newStress += 1;
-            else if (currentLog && Math.random() < 0.3) newStress += 1; 
-            newStress = Math.min(100, newStress);
+            const influenceFactor = Math.floor(prev.influence / 20); // More influence = More stress sensitivity
+            
+            // Queue Pressure
+            if (queueLen > 3) newStress += 1 + influenceFactor;
+            else if (currentLog && Math.random() < 0.3) newStress += 1; // Idle Staring
+            else if (queueLen < 2 && newStress > 0 && Math.random() < 0.2) newStress -= 1; // Small relief for clean desk
+            
+            newStress = Math.min(100, Math.max(0, newStress));
             let maxHits = prev.stressMaxHits;
             if (newStress === 100 && prev.stress < 100) maxHits += 1;
 
@@ -416,11 +419,14 @@ export const useGame = () => {
 
     // 2. Check for Lunch
     const pendingLunch = getLunchConfig(gameState.shiftIndex, gameState.flags);
-    if (pendingLunch && !gameState.hasTakenLunch && gameState.isShiftActive) {
-         const pct = pendingLunch.triggerPercent ?? 0.5;
+    
+    if (!gameState.hasTakenLunch && gameState.isShiftActive) {
+         const pct = 0.5; // Default trigger point
          const threshold = Math.floor(target * pct);
+         
          if (gameState.logsProcessedInShift >= threshold && !currentLog && gameState.queue.length === 0) {
-             narrative.startLunchBreak(pendingLunch.id);
+             // Pass pendingLunch ID if forced, otherwise undefined (Hub Mode)
+             narrative.startLunchBreak(pendingLunch?.id);
              return;
          }
     }
@@ -485,6 +491,6 @@ export const useGame = () => {
     handleFeedbackComplete: actions.handleFeedbackComplete,
     resetGame,
     handleReviewDecision: narrative.handleReviewDecision,
-    dismissStickyNote // Exported for App/Terminal
+    dismissStickyNote
   };
 };

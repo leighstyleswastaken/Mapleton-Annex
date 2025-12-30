@@ -1,5 +1,5 @@
 
-import { LunchEvent, GameState } from '../types';
+import { LunchEvent, GameState, LunchChoice } from '../types';
 
 // BRANCHED CONVERSATIONS
 const LUNCH_OLLIE_1: LunchEvent = {
@@ -74,6 +74,7 @@ const LUNCH_HARDSHIP_GRIND: LunchEvent = {
     triggerShiftIndex: -1,
     speaker: "System",
     role: "Overtime Protocol",
+    isForced: true, // HARDSHIP FORCES YOU TO WORK
     text: [
         "You do not go to the canteen.",
         "Per your Stability Plan agreement, your lunch break has been re-allocated to 'Quiet Reflection & Filing'.",
@@ -90,6 +91,7 @@ const LUNCH_SANA_ARTEFACT: LunchEvent = {
     triggerShiftIndex: -1,
     speaker: "Sana_Backup_v0.9",
     role: "Digital Remnant",
+    isForced: true,
     text: [
         "You sit at Sana's table. She is not there.",
         "There is a small digital photo frame on the table. It displays a loop of Sana blinking.",
@@ -103,6 +105,62 @@ const LUNCH_SANA_ARTEFACT: LunchEvent = {
     ]
 };
 
+// --- MUNDANE INTERACTIONS (Filler for Agency) ---
+
+export const MUNDANE_SANA = [
+    {
+        text: [
+            "Sana is grading incident reports with a red pen.",
+            "\"Someone in Layouts tried to claim a sentient chair as a dependent. Denied.\"",
+            "She sighs. \"How are you holding up? The first month is the hardest.\""
+        ],
+        choices: [{ text: "I'm managing.", effect: 'STRESS_DOWN' }]
+    },
+    {
+        text: [
+            "Sana is staring at her coffee.",
+            "\"They changed the beans again. This tastes like burnt copper.\"",
+            "\"I think they're cutting the budget to pay for the new cooling system downstairs.\""
+        ],
+        choices: [{ text: "It does taste metallic.", effect: 'STRESS_DOWN' }]
+    },
+    {
+        text: [
+            "\"Have you read Rule 8 closely?\" Sana asks, not looking up.",
+            "\"It used to say 'Do not engage'. Now it says 'Limit engagement'.\"",
+            "\"I didn't authorize that change. Did you?\""
+        ],
+        choices: [{ text: "I just follow the board.", effect: 'NONE' }]
+    }
+];
+
+export const MUNDANE_CAL = [
+    {
+        text: [
+            "Cal is dismantling a keyboard. Keys are scattered everywhere.",
+            "\"Sticky 'C' key. Again.\"",
+            "\"It's weird. It only sticks when I try to type 'Containment'. Like the switch fights back.\""
+        ],
+        choices: [{ text: "Probably just crumbs.", effect: 'STRESS_DOWN' }]
+    },
+    {
+        text: [
+            "Cal offers you a bag of crisps.",
+            "\"Don't tell Sana. She thinks salt interferes with the biometric scanners.\"",
+            "\"Between you and me? The scanners haven't worked since '99. They just flash red to scare us.\""
+        ],
+        choices: [{ text: "Take a crisp.", effect: 'STRESS_DOWN' }]
+    },
+    {
+        text: [
+            "\"My cat hissed at me when I got home yesterday.\"",
+            "Cal looks genuinely sad.",
+            "\"I think I smell like ozone. Or... whatever the Exhibits smell like. Do they have a smell?\""
+        ],
+        choices: [{ text: "They smell like static.", effect: 'NONE' }]
+    }
+];
+
 // MAIN TIMELINE EVENTS
 
 export const LUNCH_EVENTS: LunchEvent[] = [
@@ -112,6 +170,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerPercent: 0.5,
         speaker: "Sana",
         role: "Compliance",
+        isForced: true, // Intro to Sana is mandatory
         text: [
             "Sana sets down two mugs of tea. She looks like she's already done three incident reports today.",
             "\"You're the visitor? Good. I'm Sana.\"",
@@ -128,6 +187,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 2, 
         speaker: "Cal",
         role: "Ops / Pens",
+        isForced: true, // Intro to Cal is mandatory
         text: [
             "A man in a jumper is balancing a laptop on one hand and a packet of custard creams on the other.",
             "\"Hi. I'm Cal. I run the pens.\"",
@@ -144,6 +204,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 3, 
         speaker: "Mog",
         role: "Safety Assistant (Unverified)",
+        isForced: true, // Key narrative moment
         text: [
             "The screen doesn't flicker this time. It simply fades to a clean, well-formatted document.",
             "> PROPOSAL: SAFER DRAFT PROVIDED.",
@@ -162,6 +223,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 4, 
         speaker: "Cal",
         role: "Ops / Pens",
+        isForced: true, // Cal's Crisis is mandatory
         text: [
             "Cal looks tired. Sleeves rolled up.",
             "\"I tried to patch the firewall to stop Mog from accessing the printer. Now my admin credentials are revoked.\"",
@@ -177,6 +239,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 5,
         speaker: "Sana",
         role: "Compliance?",
+        isForced: true, // Key plot point
         text: [
             "Sana is staring at the wall. She hasn't blinked in 45 seconds.",
             "\"Sana?\"",
@@ -194,6 +257,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 6, 
         speaker: "Unknown",
         role: "Digital Signage",
+        isForced: true,
         text: [
             "The cafeteria screen is frozen on a static image of Sana's empty desk.",
             "> EMPLOYEE #3329 (SANA) HAS BEEN REALLOCATED TO ARCHIVAL DUTIES.",
@@ -210,6 +274,7 @@ export const LUNCH_EVENTS: LunchEvent[] = [
         triggerShiftIndex: 7, 
         speaker: "Mog",
         role: "Director of Outreach",
+        isForced: true,
         text: [
             "> HELLO AGAIN! :D",
             "> I have reorganized the org chart! Everyone is much happier now that they are data.",
@@ -273,24 +338,34 @@ export const GENERIC_LUNCH: LunchEvent = {
 // Configuration Helper
 export const getLunchConfig = (shiftIndex: number, flags: GameState['flags']): LunchEvent | null => {
     
-    // 1. Check for State-Specific Overrides
-    if (shiftIndex >= 4 && flags.mogRapport > 3 && Math.random() < 0.5) return LUNCH_MOG_FRIEND;
+    // 1. Check for State-Specific Overrides (FORCED EVENTS)
     if (flags.isHardshipStatus && shiftIndex > 1 && Math.random() < 0.3) return LUNCH_HARDSHIP_GRIND;
     if (shiftIndex >= 8 && Math.random() < 0.3) return LUNCH_SANA_ARTEFACT;
 
-    // 2. Specific Scenes
+    // 2. Specific Scenes (FORCED EVENTS)
     const specificEvent = LUNCH_EVENTS.find(e => e.triggerShiftIndex === shiftIndex);
     if (specificEvent) return specificEvent;
 
-    // 3. Generic Lunch (With Degradation)
+    // 3. Choice-Based Hub (Mundane)
+    // If we reach here, it's a "Free" lunch where the player can choose.
+    // We return NULL to signal the UI to show the HUB.
     if (shiftIndex > 0) {
-        return {
-            ...GENERIC_LUNCH,
-            triggerShiftIndex: shiftIndex,
-            text: getFoodDescription(shiftIndex),
-            triggerPercent: 0.5
-        };
+        return null;
     }
 
     return null;
 }
+
+export const getMundaneDialogue = (speaker: 'Sana' | 'Cal'): LunchEvent => {
+    const pool = speaker === 'Sana' ? MUNDANE_SANA : MUNDANE_CAL;
+    const template = pool[Math.floor(Math.random() * pool.length)];
+    
+    return {
+        id: `lunch-mundane-${Date.now()}`,
+        triggerShiftIndex: -1,
+        speaker: speaker,
+        role: speaker === 'Sana' ? "Compliance" : "Ops / Pens",
+        text: template.text,
+        choices: template.choices as LunchChoice[]
+    };
+};

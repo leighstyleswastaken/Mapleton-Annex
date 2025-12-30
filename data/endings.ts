@@ -19,8 +19,8 @@ export const ENDINGS: Record<EndingType, EndingConfig> = {
         color: "text-purple-400"
     },
     [EndingType.TRUE_ENDING]: {
-        title: "RETIREMENT",
-        description: "You survived 365 days. You walked out the front door and never looked back. But sometimes, when you're alone in a quiet room, you can still hear the tuner drift. You never touch a computer again.",
+        title: "RETIREMENT (STANDARD)",
+        description: "You survived 365 days without making waves. You walked out the front door and never looked back. You didn't save anyone. You didn't burn it down. You just... worked. Sometimes, that is the greatest horror of all.",
         color: "text-green-500"
     },
     [EndingType.MANAGER]: {
@@ -52,5 +52,10 @@ export const ENDINGS: Record<EndingType, EndingConfig> = {
         title: "THE ARCHIVE",
         description: "You found him. You found 49220 in the server logs. He wasn't dead. He was uploaded. And now, so are you. There is no hunger here. No fatigue. Just the endless, beautiful stream of data. You are together in the dark.",
         color: "text-[#5c4033]"
+    },
+    [EndingType.PLACEHOLDER]: {
+        title: "SIGNAL LOST // NARRATIVE PENDING",
+        description: "You successfully initiated a unique narrative branch (Hardship, Rebellion, or Sympathy), but the simulation data for this specific ending is corrupted (Not Yet Implemented). You did not fail. You found a secret that doesn't have an exit yet.",
+        color: "text-white"
     }
 };

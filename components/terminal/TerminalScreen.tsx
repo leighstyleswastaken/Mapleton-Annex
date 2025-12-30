@@ -13,17 +13,14 @@ interface TerminalScreenProps {
     highlightCount: number;
     theme: { text: string };
     isGlitchEvent: boolean;
-    isRedactionMode: boolean; // P0.5
+    isRedactionMode: boolean; 
     showWarning: boolean;
+    onHoverText: (hover: boolean) => void; 
 }
 
-// Helper to scramble text based on noise level (Signal Corruption)
 const corruptText = (text: string, noise: number) => {
     if (noise <= 0) return text;
-    
-    // Chance to corrupt a character depends on noise (0-100)
     const corruptionChance = noise / 100;
-    
     return text.split('').map(char => {
         if (char === ' ' || char === '\n') return char;
         if (Math.random() < corruptionChance) {
@@ -39,9 +36,10 @@ interface SelectableTextProps {
     onSelectionChange: (count: number) => void;
     noiseLevel: number;
     isRedactionMode: boolean;
+    onHoverText: (hover: boolean) => void; 
 }
 
-const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange, noiseLevel, isRedactionMode }) => {
+const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange, noiseLevel, isRedactionMode, onHoverText }) => {
     const wordsWithSentenceId = useMemo(() => {
         const words = text.split(/\s+/);
         const result: { word: string, sentenceId: number, id: string }[] = [];
@@ -77,7 +75,6 @@ const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange
 
     const handleAnomalyDetected = (wordId: string, sentenceId: number) => {
         setDetectedAnomalies(prev => new Set(prev).add(wordId));
-        // Auto-select sentence as hazard if normal mode
         if (!isRedactionMode) {
             const next = new Set(selectedIds);
             next.add(sentenceId);
@@ -87,22 +84,23 @@ const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange
     };
 
     return (
-        <div className="flex flex-wrap gap-x-1.5 gap-y-1">
+        <div 
+            className="flex flex-wrap gap-x-1.5 gap-y-1"
+            onMouseEnter={() => onHoverText(true)}
+            onMouseLeave={() => onHoverText(false)}
+        >
             {wordsWithSentenceId.map((item, i) => {
                 const key = isRedactionMode ? item.id : item.sentenceId;
                 const isSelected = selectedIds.has(key);
                 const isHovered = hoveredId === key;
                 const isDetected = detectedAnomalies.has(item.id);
                 
-                const narrativeGlitchEnabled = true; 
-
-                // Visual Styles
                 let bgClass = '';
                 let textClass = '';
                 
                 if (isRedactionMode) {
                     if (isSelected) {
-                        bgClass = 'bg-black text-black select-none'; // REDACTED BLACK BAR
+                        bgClass = 'bg-black text-black select-none'; 
                     } else if (isHovered) {
                         bgClass = 'bg-gray-800 text-gray-500 line-through';
                     }
@@ -128,14 +126,10 @@ const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange
                         className={`cursor-pointer transition-all duration-150 px-0.5 rounded ${bgClass} ${textClass} ${!isSelected && !isDetected && !isHovered ? 'hover:text-opacity-80' : ''}`}
                     >
                         {isSelected && isRedactionMode ? '█████' : (
-                            narrativeGlitchEnabled ? (
-                                <FlickerText 
-                                    originalWord={item.word} 
-                                    onGlitchClick={() => handleAnomalyDetected(item.id, item.sentenceId)}
-                                />
-                            ) : (
-                                item.word
-                            )
+                            <FlickerText 
+                                originalWord={item.word} 
+                                onGlitchClick={() => handleAnomalyDetected(item.id, item.sentenceId)}
+                            />
                         )}
                     </span>
                 );
@@ -145,13 +139,13 @@ const SelectableText: React.FC<SelectableTextProps> = ({ text, onSelectionChange
 };
 
 export const TerminalScreen: React.FC<TerminalScreenProps> = ({ 
-    text, noiseLevel, typingComplete, setTypingComplete, onSelectionChange, theme, isGlitchEvent, isRedactionMode 
+    text, noiseLevel, typingComplete, setTypingComplete, onSelectionChange, theme, isGlitchEvent, isRedactionMode, onHoverText
 }) => {
     
     const displayString = useMemo(() => corruptText(text, noiseLevel), [text, noiseLevel]);
     
     return (
-        <div className={`text-lg leading-relaxed mb-8 min-h-[120px] relative z-10 ${theme.text}`}>
+        <div className={`text-sm md:text-lg leading-relaxed mb-8 min-h-[120px] relative z-10 ${theme.text}`}>
             <span className="opacity-70 mr-2 select-none">&gt;</span>
             
             {noiseLevel > 20 ? (
@@ -165,6 +159,7 @@ export const TerminalScreen: React.FC<TerminalScreenProps> = ({
                         onSelectionChange={onSelectionChange}
                         noiseLevel={noiseLevel}
                         isRedactionMode={isRedactionMode}
+                        onHoverText={onHoverText}
                     />
                 ) : (
                     <Typewriter 

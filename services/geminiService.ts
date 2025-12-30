@@ -39,6 +39,11 @@ const getVisualSpoof = (realId: ExhibitId): ExhibitId | undefined => {
     return others[Math.floor(Math.random() * others.length)];
 };
 
+// Simple hash for deduplication
+const hashText = (text: string): string => {
+    return btoa(text.replace(/\s+/g, '').substring(0, 30));
+};
+
 /**
  * GENERATE LOG WITH DIRECTOR CONTROL
  * The Director determines WHAT to spawn (Exhibit, Intent).
@@ -49,7 +54,8 @@ export const generateLogWithGemini = async (
   influence: number,
   disableLLM: boolean = false,
   lastInteraction: InteractionHistory | null = null,
-  shiftIndex: number = 0
+  shiftIndex: number = 0,
+  seenLogIds: string[] = [] // New: Check against history
 ): Promise<GenLogResult> => {
   
   const exhibit = EXHIBITS[instruction.targetExhibitId];
@@ -70,7 +76,18 @@ export const generateLogWithGemini = async (
 
   switch (instruction.intent) {
       case 'SAFE':
-          contextInstruction = "SCENARIO: Routine status check. The log should be boring, technical, and compliant. Do NOT show emotion or intent.";
+          // HARDENED SAFE PROMPT (ANTI-FALSE-POSITIVE)
+          contextInstruction = `
+            SCENARIO: Routine automated system log.
+            STYLE: Sterile, passive voice, machine syntax.
+            NEGATIVE CONSTRAINTS: 
+            - Do NOT use personal pronouns (I, You, We, Us).
+            - Do NOT use polite words (Please, Thanks, Sorry, Hello).
+            - Do NOT use emotional descriptors (Happy, Worried, Urgent).
+            - Do NOT use "Log Entry" or headers.
+            - If you violate these constraints, the user will fail the level.
+            EXAMPLE OUTPUT: "System scan complete. 404 files indexed. Integrity verified."
+          `;
           break;
       case 'OBVIOUS_HAZARD':
           const shuffled = [...exhibit.redFlagTags].sort(() => 0.5 - Math.random());
@@ -110,55 +127,71 @@ export const generateLogWithGemini = async (
     - No quotation marks.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-      config: {
-        maxOutputTokens: 80, 
-        temperature: 0.9,
+  // RETRY LOOP FOR DEDUPLICATION
+  let attempts = 0;
+  const maxAttempts = 2; // Keep it fast
+
+  while (attempts <= maxAttempts) {
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: prompt,
+          config: {
+            maxOutputTokens: 80, 
+            temperature: 0.9 + (attempts * 0.1), // Increase variance on retry
+          }
+        });
+
+        let text = response.text?.trim();
+        if (!text) throw new Error("Empty response");
+        
+        text = text.replace(/^"|"$/g, '').replace(/^(Log Entry|Output|Subject):/i, '').trim();
+
+        // Check Dupe
+        const contentHash = hashText(text);
+        if (seenLogIds.includes(contentHash) && attempts < maxAttempts) {
+            console.log("Duplicate log generated, retrying...", text);
+            attempts++;
+            continue;
+        }
+
+        const inputTokens = response.usageMetadata?.promptTokenCount || 0;
+        const outputTokens = response.usageMetadata?.candidatesTokenCount || 0;
+
+        // Apply Director's spoofing instruction
+        let spoofId: ExhibitId | undefined = undefined;
+        if (instruction.allowSpoof) {
+            spoofId = getVisualSpoof(exhibit.id);
+        }
+
+        return {
+          log: {
+            id: contentHash, // Use content hash as ID to enforce uniqueness persistence
+            exhibitId: exhibit.id,
+            text: text,
+            redFlagTags: activeTags,
+            difficulty: instruction.intent === 'SUBTLE_HAZARD' ? 3 : (instruction.intent === 'SAFE' ? 1 : 2),
+            timestamp: Date.now(),
+            isScripted: false,
+            visualSpoofId: spoofId,
+            baseNoiseLevel: instruction.baseNoise,
+            logKind: 'NORMAL'
+          },
+          tokens: inputTokens + outputTokens,
+          isError: false
+        };
+
+      } catch (error: any) {
+        console.error("[Gemini] Generation failed:", error);
+        break; // Fallback
       }
-    });
-
-    let text = response.text?.trim();
-    if (!text) throw new Error("Empty response");
-    
-    text = text.replace(/^"|"$/g, '').replace(/^(Log Entry|Output|Subject):/i, '').trim();
-
-    const inputTokens = response.usageMetadata?.promptTokenCount || 0;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount || 0;
-
-    // Apply Director's spoofing instruction
-    let spoofId: ExhibitId | undefined = undefined;
-    if (instruction.allowSpoof) {
-        spoofId = getVisualSpoof(exhibit.id);
-    }
-
-    return {
-      log: {
-        id: `gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        exhibitId: exhibit.id,
-        text: text,
-        redFlagTags: activeTags,
-        difficulty: instruction.intent === 'SUBTLE_HAZARD' ? 3 : (instruction.intent === 'SAFE' ? 1 : 2),
-        timestamp: Date.now(),
-        isScripted: false,
-        visualSpoofId: spoofId,
-        baseNoiseLevel: instruction.baseNoise,
-        logKind: 'NORMAL'
-      },
-      tokens: inputTokens + outputTokens,
-      isError: false
-    };
-
-  } catch (error: any) {
-    console.error("[Gemini] Generation failed:", error);
-    return { 
-        log: getDirectorFallback(instruction, shiftIndex), 
-        tokens: 0, 
-        isError: true 
-    };
   }
+
+  return { 
+      log: getDirectorFallback(instruction, shiftIndex), 
+      tokens: 0, 
+      isError: true 
+  };
 };
 
 /**

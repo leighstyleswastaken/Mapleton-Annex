@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Mapleton Annex</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
@@ -11,6 +12,7 @@
         background-color: #1a1a1a;
         color: #e5e5e5;
         font-family: 'Courier Prime', monospace;
+        overscroll-behavior: none; /* Prevent pull-to-refresh */
       }
       /* Custom Scrollbar for the terminal feel */
       ::-webkit-scrollbar {

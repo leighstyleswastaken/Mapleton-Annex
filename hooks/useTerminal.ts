@@ -35,6 +35,7 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
     const [showWarning, setShowWarning] = useState(false);
     const [typingComplete, setTypingComplete] = useState(false);
     const [feedbackAnim, setFeedbackAnim] = useState<FeedbackState | null>(null);
+    const [isInteractingWithText, setIsInteractingWithText] = useState(false); // NEW: Pause drift
     
     // Track previous log to detect changes
     const prevLogId = useRef<string | undefined>(currentLog?.id);
@@ -48,37 +49,27 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
     const [isDragging, setIsDragging] = useState(false);
     
     // P1.2: SPOOFING LOGIC
-    // Calculate the TRUE target (where logic locks) vs DISPLAY target (visual lie)
     const trueTargetFreq = currentLog ? EXHIBIT_FREQUENCIES[currentLog.exhibitId] : 50;
     
     // If it's a visual spoof, the display shows the frequency of the spoofed ID, not real ID.
-    // This forces the player to find the "invisible" real spot or realize the lie.
     const displayTargetFreq = currentLog?.visualSpoofId 
         ? EXHIBIT_FREQUENCIES[currentLog.visualSpoofId] 
         : trueTargetFreq;
 
     // Is the tuner currently in the good zone?
-    // We calculate this based on TRUE target
     const distTrue = Math.abs(tunerValue - trueTargetFreq);
     const isInZone = distTrue < (SWEET_SPOT_WIDTH / 2);
 
-    // "Spoof Zone" check: Are we tuned to the visual lie?
+    // "Spoof Zone" check
     const distSpoof = Math.abs(tunerValue - displayTargetFreq);
-    // Only consider it a "Spoof Zone" if it's NOT the true zone (avoid overlap logic)
     const isInSpoofZone = currentLog?.visualSpoofId 
         ? (distSpoof < (SWEET_SPOT_WIDTH / 2) && !isInZone)
         : false;
 
-    // "Signal Quality" determines text readability.
-    // If True Lock: 100% (Perfect)
-    // If Spoof Lock: 80% (Readable but with artifacts/grain, allows player to read text)
-    // Else: 0%
     const signalQuality = (isInZone && !isDragging) || hasAutoTuner 
         ? 100 
         : (isInSpoofZone && !isDragging ? 80 : 0);
     
-    // Base noise is high if untuned
-    // If Spoof Zone (80% quality), noise is low enough to read (e.g. 15), but not 0.
     const effectiveNoiseLevel = signalQuality === 100 
         ? 0 
         : (signalQuality === 80 ? 15 : Math.max(85, currentLog?.baseNoiseLevel || 85));
@@ -99,15 +90,12 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
         setTypingComplete(false);
     }, [currentLog, hasAutoTuner, trueTargetFreq]);
 
-    // P0.4 THE VOICE (Modified for Horror Commands)
+    // P0.4 THE VOICE
     const hasSpokenRef = useRef<string>('');
     useEffect(() => {
         if (hasVoiceTuner && isInZone && !isDragging && currentLog && hasSpokenRef.current !== currentLog.id) {
              let textToSpeak = currentLog.text;
-             
-             // SUBLIMINAL COMMAND LOGIC
-             // As influence rises, the entity ignores the log and commands you directly
-             const commandChance = influence / 200; // 0% at 0 Inf, 50% at 100 Inf
+             const commandChance = influence / 200; 
              
              if (Math.random() < commandChance) {
                  const cmd = MOG_VOICE_COMMANDS[Math.floor(Math.random() * MOG_VOICE_COMMANDS.length)];
@@ -120,17 +108,16 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
     }, [hasVoiceTuner, isInZone, isDragging, currentLog, influence]);
 
     // DRIFT MECHANIC
-    // P1.1: Brownout event increases drift
     const isBrownout = activeEvent?.id === 'EVT_BROWNOUT';
     const driftSpeed = isBrownout ? BASE_DRIFT_SPEED_MS / 2 : BASE_DRIFT_SPEED_MS;
 
     useEffect(() => {
-        if (isDragging || hasAutoTuner || isProcessing) return;
+        // FIX: Pause Drift if interacting with text (e.g. highlighting)
+        if (isDragging || hasAutoTuner || isProcessing || isInteractingWithText) return;
 
         const interval = setInterval(() => {
             setTunerValue(prev => {
                 const drift = Math.random() > 0.5 ? 1 : -1;
-                // Brownout drifts harder
                 const magnitude = isBrownout ? (Math.random() > 0.5 ? 2 : 1) : 1;
                 const newValue = prev + (drift * magnitude);
                 return Math.min(100, Math.max(0, newValue));
@@ -138,7 +125,7 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
         }, driftSpeed);
 
         return () => clearInterval(interval);
-    }, [isDragging, hasAutoTuner, isProcessing, isBrownout, driftSpeed]);
+    }, [isDragging, hasAutoTuner, isProcessing, isBrownout, driftSpeed, isInteractingWithText]);
 
     // Handle Feedback Animations
     useEffect(() => {
@@ -183,6 +170,7 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
         handleDragEnd,
         targetFreq: displayTargetFreq, // Use display (potentially spoofed)
         isInZone,
-        isInSpoofZone // New export for UI feedback
+        isInSpoofZone,
+        setIsInteractingWithText // EXPORTED
     };
 };

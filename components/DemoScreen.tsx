@@ -137,6 +137,7 @@ export const DemoScreen: React.FC<DemoScreenProps> = ({ onExit }) => {
         queue: [],
         logsProcessedInShift: 0,
         deferCountGlobal: 0,
+        deferCountShift: 0,
         consecutiveCorrect: 0,
         consecutiveWrong: 0,
         activeTraps: [],
@@ -148,6 +149,7 @@ export const DemoScreen: React.FC<DemoScreenProps> = ({ onExit }) => {
         lastAmendmentLogCount: 0,
         seenStickyNotes: [],
         seenLogIds: [],
+        pastLunchLogs: [],
         flags: {
             isHardshipStatus: false,
             hasClippedEvidence: false,

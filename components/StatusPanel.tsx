@@ -29,12 +29,12 @@ interface ProgressBarProps {
     subLabel?: string;
     variant?: 'default' | 'dominant' | 'recessive';
     isAero?: boolean;
+    isBlackIce?: boolean; // NEW
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, color, warn, hidden, subLabel, variant = 'default', isAero }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, color, warn, hidden, subLabel, variant = 'default', isAero, isBlackIce }) => {
   if (hidden) return null;
 
-  // Variant Styles
   const isDominant = variant === 'dominant';
   const isRecessive = variant === 'recessive';
 
@@ -49,19 +49,21 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, color, warn, hi
     ? "bg-white/5 border border-white/20 rounded-full overflow-hidden"
     : `bg-gray-900 border ${isDominant ? 'border-pink-900' : 'border-gray-800'}`;
 
-  // Aero glow effect for bar
   const barShadow = isAero && !isRecessive ? `shadow-[0_0_15px_currentColor]` : '';
+  
+  // Visual Trick: If Black Ice, display value as lower than it really is (Gaslighting)
+  const displayValue = isBlackIce ? Math.max(0, value - 30) : value;
 
   return (
     <div className={marginBottom}>
       <div className={`flex justify-between mb-1 font-mono uppercase tracking-wider ${labelSize} ${isAero ? 'text-gray-300' : ''}`}>
         <span className={isDominant ? 'animate-pulse' : ''}>{label}</span>
-        <span>{Math.round(value)}%</span>
+        <span>{Math.round(displayValue)}%</span>
       </div>
       <div className={`${containerHeight} ${trackClass} p-0.5 relative transition-all duration-500`}>
         <div 
           className={`h-full transition-all duration-1000 ${color} ${warn && value > 80 ? 'animate-pulse' : ''} ${barShadow} ${isAero ? 'rounded-full opacity-80' : ''}`} 
-          style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
+          style={{ width: `${Math.min(Math.max(displayValue, 0), 100)}%` }}
         ></div>
         {subLabel && (
             <div className={`absolute top-full mt-1 w-full text-right ${isDominant ? 'text-xs text-pink-300 font-bold' : 'text-[9px] text-gray-600'}`}>
@@ -80,12 +82,10 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ safety, influence, str
   const currentDay = SHIFT_DAYS[shiftIndex] || 365;
 
   // P3: BLACK ICE EFFECT
-  // If Stress is extremely high but Influence is also high, the game gaslights you into thinking it's fine.
   const isBlackIce = stress > 90 && influence > 80;
   const stressColor = isBlackIce ? 'bg-cyan-300 shadow-[0_0_15px_#22d3ee]' : (stress > 80 ? 'bg-red-500' : 'bg-yellow-600');
   const stressLabel = isBlackIce ? 'EUPHORIA' : 'STRESS (DAILY)';
 
-  // MOG DOMINANCE LOGIC
   const mogRapport = flags?.mogRapport || 0;
   const isMogDominant = influence > 60 || mogRapport > 4;
 
@@ -103,7 +103,6 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ safety, influence, str
         }
       `}>
         <div className={`border-b-2 pb-2 mb-2 flex justify-between items-center ${isAero ? 'border-white/10' : 'border-black'}`}>
-            {/* P3: GHOST ID (Visual Horror) */}
             <span className={`font-bold text-lg ${isCorrupted ? 'font-corrupted' : ''} ${isAero ? 'text-white' : ''}`}>
                 <span className="group-hover:hidden">{rank}</span>
                 <span className="hidden group-hover:inline text-red-600 font-mono tracking-widest">
@@ -140,11 +139,11 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ safety, influence, str
             color={stressColor} 
             warn={stress > 90 && !isBlackIce}
             isAero={isAero}
+            isBlackIce={isBlackIce}
         />
 
         <div className={`my-8 border-t ${isAero ? 'border-white/10' : 'border-gray-800'}`}></div>
 
-        {/* DYNAMIC RE-ORDERING FOR MOG RAIL */}
         {isMogDominant ? (
             <>
                 <ProgressBar 
@@ -190,7 +189,6 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ safety, influence, str
         )}
       </div>
 
-      {/* Flags / Narrative Indicators */}
       {(flags?.isHardshipStatus || flags?.hasClippedEvidence || (flags && flags.mogRapport > 0)) && (
           <div className={`mb-4 p-2 text-[10px] font-mono ${isAero ? 'bg-black/40 border border-white/10 rounded' : 'bg-gray-900 border border-gray-700'}`}>
               <p className="text-gray-500 uppercase tracking-widest border-b border-gray-800 mb-1">Active Protocols</p>

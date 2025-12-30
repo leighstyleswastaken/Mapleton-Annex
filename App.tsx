@@ -9,13 +9,17 @@ import { EmailClient } from './components/EmailClient';
 import { WeeklyReview } from './components/WeeklyReview';
 import { SystemMenu } from './components/SystemMenu'; 
 import { DemoScreen } from './components/DemoScreen'; 
+import { MobileNav } from './components/MobileNav';
 import { useGame } from './hooks/useGame';
 import { 
   HOUSE_RULES, 
-  MAX_QUEUE_SIZE
+  MAX_QUEUE_SIZE,
+  GAME_VERSION
 } from './constants';
 import { ENDINGS } from './data/endings';
 import { LUNCH_EVENTS, GENERIC_LUNCH } from './data/lunchEvents';
+
+type MobileTab = 'TERMINAL' | 'RULES' | 'STATUS';
 
 const App: React.FC = () => {
   const { 
@@ -44,6 +48,7 @@ const App: React.FC = () => {
   const [showCheatMenu, setShowCheatMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false); 
+  const [mobileTab, setMobileTab] = useState<MobileTab>('TERMINAL');
 
   // Handle ESC for System Menu / Pause
   useEffect(() => {
@@ -91,23 +96,39 @@ const App: React.FC = () => {
 
   const isAero = gameState.activeUpgrades.includes('SYS_AERO');
 
+  // --- PERSISTENT UI OVERLAYS ---
+  const VersionOverlay = () => (
+      <div className="fixed bottom-16 md:bottom-1 right-1 z-[100] text-[10px] text-white/30 font-mono tracking-widest pointer-events-none select-none mix-blend-difference">
+          v{GAME_VERSION}
+      </div>
+  );
+
+  const SysOptButton = () => (
+      <button 
+        onClick={() => setShowSystemMenu(true)}
+        className="fixed top-4 right-4 z-[60] text-[10px] text-green-700 border border-green-900 px-2 py-1 hover:bg-green-900 hover:text-white uppercase tracking-widest bg-black"
+      >
+          [ SYS_OPT ]
+      </button>
+  );
+
   // --- View: Demo Mode ---
   if (isDemoMode) {
-      return <DemoScreen onExit={() => setIsDemoMode(false)} />;
+      return (
+        <>
+            <VersionOverlay />
+            <DemoScreen onExit={() => setIsDemoMode(false)} />
+        </>
+      );
   }
 
   // --- View: Intro Screen ---
   if (!gameState.hasSeenIntro) {
       return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#050505] text-green-500 font-mono p-8 text-center relative overflow-hidden">
+          <div className="flex flex-col items-center justify-center h-[100dvh] bg-[#050505] text-green-500 font-mono p-8 text-center relative overflow-hidden">
              
-              {/* EVER PRESENT MENU BUTTON (INTRO) */}
-              <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-green-700 border border-green-900 px-2 py-1 hover:bg-green-900 hover:text-white uppercase tracking-widest bg-black"
-              >
-                  [ SYS_OPT ]
-              </button>
+              <VersionOverlay />
+              <SysOptButton />
 
               <SystemMenu 
                  isOpen={showSystemMenu} 
@@ -121,12 +142,12 @@ const App: React.FC = () => {
               ></div>
               <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/90 via-black/70 to-black/90"></div>
               
-              <div className="max-w-2xl w-full border-4 border-double border-green-800 p-10 bg-black/90 z-10 shadow-[0_0_50px_rgba(0,255,0,0.1)] relative backdrop-blur-sm">
+              <div className="max-w-2xl w-full border-4 border-double border-green-800 p-6 md:p-10 bg-black/90 z-10 shadow-[0_0_50px_rgba(0,255,0,0.1)] relative backdrop-blur-sm">
                   <div className="absolute top-4 right-4 border border-green-700 px-2 py-1 text-xs uppercase opacity-50">
                       Form HR-001
                   </div>
 
-                  <h1 className="text-3xl mb-8 font-bold tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">MAPLETON ANNEX</h1>
+                  <h1 className="text-2xl md:text-3xl mb-8 font-bold tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">MAPLETON ANNEX</h1>
                   
                   <div className="text-left space-y-6 text-sm mb-8 leading-relaxed text-green-100">
                       <p>
@@ -161,7 +182,7 @@ const App: React.FC = () => {
                       </p>
                   </div>
 
-                  <div className="flex gap-4">
+                  <div className="flex flex-col md:flex-row gap-4">
                       <button 
                           onClick={completeIntro}
                           className="flex-1 py-4 bg-green-900 text-white hover:bg-green-700 uppercase font-bold tracking-widest border border-green-500 transition-all hover:scale-[1.01] shadow-lg"
@@ -173,7 +194,7 @@ const App: React.FC = () => {
                               e.stopPropagation();
                               setIsDemoMode(true);
                           }}
-                          className="w-32 py-4 bg-black text-green-600 hover:text-white hover:bg-green-900/30 uppercase font-bold tracking-widest border border-green-800 transition-all text-xs"
+                          className="w-full md:w-32 py-4 bg-black text-green-600 hover:text-white hover:bg-green-900/30 uppercase font-bold tracking-widest border border-green-800 transition-all text-xs"
                       >
                           DEMO
                       </button>
@@ -191,13 +212,9 @@ const App: React.FC = () => {
     const color = ending?.color || "text-white";
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-black text-white font-mono p-8 text-center z-50 relative">
-             <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-gray-500 border border-gray-700 px-2 py-1 hover:bg-gray-800 hover:text-white uppercase tracking-widest"
-              >
-                  [ SYS_OPT ]
-              </button>
+        <div className="flex flex-col items-center justify-center h-[100dvh] bg-black text-white font-mono p-8 text-center z-50 relative">
+             <VersionOverlay />
+             <SysOptButton />
 
             <SystemMenu 
                  isOpen={showSystemMenu} 
@@ -210,9 +227,9 @@ const App: React.FC = () => {
                     INCIDENT REPORT // FINAL ENTRY
                 </div>
                 
-                <h1 className={`text-4xl mb-6 font-bold tracking-wider ${color} animate-pulse`}>{title}</h1>
+                <h1 className={`text-3xl md:text-4xl mb-6 font-bold tracking-wider ${color} animate-pulse`}>{title}</h1>
                 
-                <p className="text-lg mb-10 leading-relaxed text-gray-300 font-serif">
+                <p className="text-md md:text-lg mb-10 leading-relaxed text-gray-300 font-serif">
                     {desc}
                 </p>
                 
@@ -244,12 +261,8 @@ const App: React.FC = () => {
   if (gameState.isReviewPhase) {
       return (
           <>
-            <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-black border border-black px-2 py-1 hover:bg-black hover:text-white uppercase tracking-widest"
-            >
-                [ SYS_OPT ]
-            </button>
+            <VersionOverlay />
+            <SysOptButton />
             <SystemMenu isOpen={showSystemMenu} onClose={() => setShowSystemMenu(false)} onRestart={resetGame} />
             <WeeklyReview 
                 gameState={gameState}
@@ -263,12 +276,8 @@ const App: React.FC = () => {
   if (gameState.activeEmail && !gameState.isShiftActive) {
       return (
         <>
-             <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-gray-500 border border-gray-600 px-2 py-1 hover:bg-gray-800 hover:text-white uppercase tracking-widest"
-            >
-                [ SYS_OPT ]
-            </button>
+             <VersionOverlay />
+             <SysOptButton />
             <SystemMenu isOpen={showSystemMenu} onClose={() => setShowSystemMenu(false)} onRestart={resetGame} />
             <EmailClient email={gameState.activeEmail} onClose={closeEmail} />
         </>
@@ -278,24 +287,36 @@ const App: React.FC = () => {
   // --- View: Lunch Break ---
   if (gameState.isLunchBreak) {
       let event;
+      let isForced = false;
+
       if (gameState.activeLunchEventId) {
           event = LUNCH_EVENTS.find(e => e.id === gameState.activeLunchEventId);
+          isForced = true; 
       } else {
-          event = LUNCH_EVENTS.find(e => e.triggerShiftIndex === gameState.shiftIndex);
+          const scheduled = LUNCH_EVENTS.find(e => e.triggerShiftIndex === gameState.shiftIndex);
+          if (scheduled) {
+              event = scheduled;
+              isForced = true; 
+          } else {
+              event = GENERIC_LUNCH;
+              isForced = false; 
+          }
       }
       
       const safeEvent = event || GENERIC_LUNCH;
 
       return (
         <>
-             <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-gray-500 border border-gray-600 px-2 py-1 hover:bg-gray-800 hover:text-white uppercase tracking-widest"
-            >
-                [ SYS_OPT ]
-            </button>
+             <VersionOverlay />
+             <SysOptButton />
             <SystemMenu isOpen={showSystemMenu} onClose={() => setShowSystemMenu(false)} onRestart={resetGame} />
-            <LunchBreak event={safeEvent} onComplete={completeLunch} currentStress={gameState.stress} />
+            <LunchBreak 
+                event={safeEvent} 
+                onComplete={completeLunch} 
+                currentStress={gameState.stress} 
+                gameState={gameState}
+                isForcedMode={isForced}
+            />
         </>
       );
   }
@@ -307,6 +328,7 @@ const App: React.FC = () => {
 
       return (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+              <VersionOverlay />
               <div className="bg-yellow-200 text-black border-4 border-dashed border-gray-500 p-8 max-w-md w-full shadow-[10px_10px_0px_rgba(0,0,0,0.5)] transform rotate-1 relative font-serif">
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-red-100 border border-red-300 px-3 py-1 text-xs text-red-800 uppercase font-bold tracking-widest shadow-sm">
                       Proposed Amendment
@@ -360,6 +382,7 @@ const App: React.FC = () => {
 
       return (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+              <VersionOverlay />
               <div className="bg-[#1a1a1a] border-2 border-purple-500 p-6 max-w-md w-full shadow-[0_0_30px_rgba(168,85,247,0.4)]">
                   <h2 className="text-purple-400 font-bold text-xl mb-4 font-mono">OPTIMIZATION SUGGESTED</h2>
                   <p className="text-gray-300 mb-6 font-mono text-sm leading-relaxed">
@@ -390,14 +413,9 @@ const App: React.FC = () => {
   // --- View: Start Screen (Shift Start) ---
   if (!gameState.isShiftActive) {
       return (
-          <div className="flex flex-col items-center justify-center h-screen bg-[#1a1a1a] text-gray-300 font-mono">
-              
-              <button 
-                onClick={() => setShowSystemMenu(true)}
-                className="fixed top-4 right-4 z-[60] text-[10px] text-green-700 border border-green-900 px-2 py-1 hover:bg-green-900 hover:text-white uppercase tracking-widest"
-              >
-                  [ SYS_OPT ]
-              </button>
+          <div className="flex flex-col items-center justify-center h-[100dvh] bg-[#1a1a1a] text-gray-300 font-mono">
+              <VersionOverlay />
+              <SysOptButton />
               <SystemMenu isOpen={showSystemMenu} onClose={() => setShowSystemMenu(false)} onRestart={resetGame} />
 
               <div className="bg-black p-8 border border-gray-700 shadow-xl max-w-md w-full relative">
@@ -452,9 +470,31 @@ const App: React.FC = () => {
       )
   }
 
+  // --- CSS STRATEGY: ---
+  // Desktop: Normal flex layout. Panels are visible blocks.
+  // Mobile: Panels are hidden by default. If active, they become fixed full-screen overlays.
+  
+  // Base classes for side panels that reset completely on desktop (md:)
+  const panelBaseClass = "w-full md:w-1/4 h-full z-10 transition-all duration-300";
+  
+  // Mobile: "Modal" style (Fixed, inset-0, black bg)
+  // Desktop: "Column" style (Static, transparent bg, visible)
+  const getPanelVisibilityClass = (isActiveMobile: boolean) => {
+      // Logic:
+      // 1. On Mobile: If active, 'fixed inset-0 ...'. If not active, 'hidden'.
+      // 2. On Desktop: Always 'md:block md:static md:inset-auto ...'
+      
+      const mobileClass = isActiveMobile 
+        ? "fixed inset-0 bg-black/95 z-40 overflow-y-auto pb-20 pt-10 px-4" 
+        : "hidden";
+        
+      return `${mobileClass} md:block md:static md:bg-transparent md:z-auto md:p-0 md:overflow-visible`;
+  };
+
   // --- View: Main Game Loop ---
   return (
-    <div className={`flex h-screen w-screen overflow-hidden text-sm relative transition-all duration-1000 ${getEventClass()} ${isAero ? 'bg-gradient-to-br from-gray-900 to-black' : ''}`}>
+    <div className={`flex h-[100dvh] w-screen overflow-hidden text-sm relative transition-all duration-1000 ${getEventClass()} ${isAero ? 'bg-gradient-to-br from-gray-900 to-black' : ''}`}>
+        <VersionOverlay />
         <style>{`
             .event-glitch .flex-1 { 
                 animation: twitch 2s infinite; 
@@ -470,14 +510,12 @@ const App: React.FC = () => {
                 15% { transform: translate(0,0); }
                 100% { transform: translate(0,0); }
             }
+            .safe-area-pb {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
         `}</style>
 
-        <button 
-            onClick={handleOpenSystemMenu}
-            className="fixed top-4 right-4 z-[60] text-[10px] text-green-700 border border-green-900 px-2 py-1 hover:bg-green-900 hover:text-white uppercase tracking-widest bg-black"
-        >
-            [ SYS_OPT ]
-        </button>
+        <SysOptButton />
 
         <SystemMenu 
             isOpen={showSystemMenu} 
@@ -502,7 +540,8 @@ const App: React.FC = () => {
         )}
 
       {/* Left Panel: Rules */}
-      <div className="w-1/4 h-full z-10 hidden md:block">
+      {/* On Mobile: Toggled by 'RULES' tab. On Desktop: Always visible column. */}
+      <div className={`${panelBaseClass} ${getPanelVisibilityClass(mobileTab === 'RULES')}`}>
         <Noticeboard 
             rules={HOUSE_RULES} 
             activeRuleIds={gameState.activeRuleIds} 
@@ -510,10 +549,15 @@ const App: React.FC = () => {
             influence={gameState.influence} 
             isAero={isAero}
         />
+        {/* Mobile Close Button (Optional UX help) */}
+        <div className="md:hidden mt-4 text-center">
+            <button onClick={() => setMobileTab('TERMINAL')} className="text-gray-500 text-xs border border-gray-700 px-4 py-2 uppercase">Close Protocols</button>
+        </div>
       </div>
 
       {/* Center Panel: Terminal */}
-      <div className="flex-1 h-full z-10 min-w-[300px]">
+      {/* On Mobile: Always rendered underneath, but might be covered by overlays. Flex col handles layout. */}
+      <div className="flex-1 h-full z-10 min-w-[300px] flex flex-col pb-16 md:pb-0">
         <Terminal 
             currentLog={currentLog} 
             onAction={handleAction} 
@@ -527,13 +571,14 @@ const App: React.FC = () => {
             onFeedbackComplete={handleFeedbackComplete}
             onNoteDismiss={dismissStickyNote}
         />
-        <div className="absolute top-20 right-10 text-xs text-green-800 font-mono">
+        <div className="absolute top-20 right-10 text-xs text-green-800 font-mono hidden md:block">
             QUEUE LOAD: {gameState.queue.length}/{MAX_QUEUE_SIZE}
         </div>
       </div>
 
       {/* Right Panel: Status */}
-      <div className="w-1/4 h-full z-10 hidden lg:block">
+      {/* On Mobile: Toggled by 'STATUS' tab. On Desktop: Always visible column. */}
+      <div className={`${panelBaseClass} ${getPanelVisibilityClass(mobileTab === 'STATUS')}`}>
         <StatusPanel 
             safety={gameState.safety}
             dailySafety={gameState.dailySafety}
@@ -545,12 +590,21 @@ const App: React.FC = () => {
             flags={gameState.flags}
             isAero={isAero}
         />
+        <div className="md:hidden mt-4 text-center">
+            <button onClick={() => setMobileTab('TERMINAL')} className="text-gray-500 text-xs border border-gray-700 px-4 py-2 uppercase">Close Bios</button>
+        </div>
       </div>
+
+      <MobileNav 
+        activeTab={mobileTab} 
+        onTabChange={setMobileTab} 
+        hasAlerts={gameState.dailySafety < 50 || gameState.stress > 80}
+      />
 
       {/* Cheat Menu Toggle */}
       <button 
         onClick={() => setShowCheatMenu(!showCheatMenu)}
-        className="fixed bottom-1 left-1 opacity-20 hover:opacity-100 text-[10px] text-white z-50 font-mono"
+        className="fixed bottom-20 md:bottom-1 left-1 opacity-20 hover:opacity-100 text-[10px] text-white z-50 font-mono"
       >
         DEV_TOOLS
       </button>

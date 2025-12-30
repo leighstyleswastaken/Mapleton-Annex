@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { audio } from '../services/audioService';
+import { GAME_VERSION } from '../constants';
 
 interface SystemMenuProps {
     isOpen: boolean;
@@ -40,7 +41,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ isOpen, onClose, onResta
                 
                 {/* Decorative Header */}
                 <div className="absolute top-0 left-0 bg-green-900 text-black text-[10px] px-2 py-0.5 font-bold">
-                    BIOS_CONFIG_UTIL_v9.9
+                    BIOS_CONFIG_UTIL_v{GAME_VERSION}
                 </div>
                 
                 <h2 className="text-xl font-bold mb-8 text-center border-b border-green-800 pb-4 tracking-widest">
@@ -101,7 +102,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ isOpen, onClose, onResta
                 <div className="mt-8 text-center text-[10px] text-green-900 border-t border-green-900/30 pt-2">
                     <div className="flex justify-between opacity-50">
                         <span>MAPLETON ANNEX // HARDWARE ID: 49221</span>
-                        <span>v1.0.2 // HASH: 7a9c2b</span>
+                        <span>v{GAME_VERSION} // RELEASE</span>
                     </div>
                 </div>
             </div>

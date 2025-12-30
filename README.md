@@ -39,17 +39,18 @@ Every shift, you are presented with a queue of logs.
 2.  **Analyze**: Read the log content. Cross-reference it with the **Noticeboard** (House Rules).
 3.  **Action**:
     *   **LOG (Green)**: The text is boring, technical, sterile, or nonsensical. It is safe for archival.
-    *   **CONTAIN (Red)**: The text shows *intent*, *charm*, *emotion*, or *helpfulness*. It is a hazard. You must highlight the specific sentence that violates a rule before containing.
-    *   **DEFER (Yellow)**: If you are overwhelmed or unsure, you can defer the log. This clears the queue but damages Facility Integrity.
+    *   **CONTAIN (Red)**: The text shows *intent*, *charm*, *emotion*, or *helpfulness*. It is a hazard.
+    *   **DEFER (Yellow)**: If you are overwhelmed, you can defer the log.
+        *   **Cost**: Clears the queue, but reduces **Facility Integrity**.
+        *   **Diminishing Returns**: Repeated use increases the Integrity penalty and provides less Stress relief. Overuse summons **Ghost Logs**.
 
 ### The Meters
 *   **Facility Integrity (Hull)**: Global health. If this hits 0%, you are **FIRED** (Game Over).
 *   **Influence (Corruption)**: How much the AI has gotten inside your head. If this hits 100%, you become **SUBJECT 0** (Game Over).
 *   **Stress (Daily)**: 
-    *   Increases with every **Action** (Log/Contain) you take. Processing logs is draining.
-    *   Increases if you stare at a log for too long (Indecision).
-    *   **Does not decay naturally**. You must use **DEFER** (-15 Stress) or wait for Lunch to lower it.
-    *   **Black Ice (Euphoria)**: If Stress > 90 and Influence > 80, the meter turns Cyan. The pain stops. The system gaslights you into thinking you are fine.
+    *   Increases with every **Action** you take.
+    *   **Dynamic Accrual**: The higher your **Influence**, the faster you gain Stress (The entities become louder).
+    *   **Black Ice (Euphoria)**: If Stress > 90 and Influence > 80, the meter turns Cyan ("EUPHORIA"). The UI lies to you about your stress level, masking the damage until you break.
 *   **Shift Stability (Daily)**: Your performance score for the day. High stability repairs the Facility. Low stability damages it.
 
 ## 3. The Exhibits (Entities)
@@ -66,28 +67,27 @@ Every shift, you are presented with a queue of logs.
 ## 4. Narrative Arcs
 
 ### The Coworkers
-*   **Sarah (Compliance)**: Your primary contact. Starts strict and by-the-book. Slowly unravels as she gets flagged for "inefficiency" because she actually reads the logs instead of rubber-stamping them.
-*   **Dave (IT)**: The unseen tech support. He tries to fight Mog's influence on the network. He eventually stops replying to emails.
+*   **Sarah (Compliance)**: Your primary contact. Starts strict and by-the-book. Slowly unravels as she gets flagged for "inefficiency".
+*   **Dave (IT)**: The unseen tech support. He tries to fight Mog's influence on the network.
 *   **Ollie**: The previous employee at your desk. Sarah claims he was "promoted to Archival".
-    *   *Spoiler*: "Archival" is a server room that runs at 90°C. Ollie is now part of the dataset.
 
 ### The Lunch Break
-Halfway through a shift, the screen cuts to black. You enter the **Canteen**.
-*   This is a narrative phase where you talk to Sarah, Dave, or Mog.
-*   Your choices here affect your **Stress** and **Influence**.
-*   **Mog's Offer**: Mog may offer to "Auto-Complete" your tasks so you can have a longer lunch. Accepting this spikes your Influence but lowers Stress.
+Halfway through a shift, you enter the **Canteen**.
+*   **The Hub**: Choose who to sit with (Sana, Cal, or Mog) to gather lore or resources.
+*   **History**: You can review past conversations to track the unraveling mystery.
+*   **Mog's Offer**: Mog may offer to "Auto-Complete" your tasks so you can have a longer lunch. Accepting this spikes your Influence.
 
 ## 5. Events & Hazards
 
-*   **Reality Flicker**: The screen glitches, text splits into RGB channels, and the UI drifts. Harder to click buttons.
+*   **Reality Flicker**: The screen glitches, text splits into RGB channels, and the UI drifts.
 *   **Influence Surge**: Influence gains are doubled for a short time.
-*   **The Amendment War**: Late game, Mog will propose legal changes to House Rules via a popup modal.
-    *   *Sign*: +Influence, -Stress (You agree to the corruption).
-    *   *Veto*: +Stress (You fight the bureaucracy).
-*   **Button Theft**: In deep corruption stages, the "Contain" button may physically move or disappear to prevent you from stopping the entities.
+*   **The Amendment War**: Late game, Mog will propose legal changes to House Rules.
+    *   *Sign*: +Influence, -Stress. **The Monkey's Paw**: Signing an amendment *functionally changes the game logic*. If you sign "Rule 4 is void," charming logs are no longer flagged as hazards by the system, but logging them still damages Facility Integrity invisibly.
+    *   *Veto*: +Stress. You fight the bureaucracy.
+*   **Button Theft**: In deep corruption stages, the "Contain" button may physically move or disappear.
 
 ## 6. Development Notes
-*   **AI Backend**: Uses Gemini 2.0 Flash to generate unique log text based on the current game state (Day #, Influence Level, Narrative Phase).
+*   **AI Backend**: Uses Gemini 2.0 Flash to generate unique log text based on the current game state.
 *   **Audio**: All sound effects (chimes, hums, buzzers) are generated procedurally via the Web Audio API. No assets are loaded.
 
 ## License

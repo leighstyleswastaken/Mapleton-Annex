@@ -275,16 +275,66 @@ export const MEMO_DIRECTOR_INTERVENTION: DecisionMemo = {
     ],
     options: [
         {
-            label: "I understand.",
+            label: "I understand. (Cooperate)",
             effectType: 'COOPERATE',
             description: "Stress +15, Insight +1",
             statsDelta: { stability: -15 }
         },
         {
-            label: "What does this mean?",
+            label: "Secretly Record This Call. (Evidence)",
+            effectType: 'LEAK',
+            description: "Scrutiny +30, Dossier +1",
+            statsDelta: { scrutiny: 30, dossierCount: 1 }
+        }
+    ]
+};
+
+// NEW: SHIFT 8 (Day 180) - The Quiet Audit
+export const MEMO_STORAGE_AUDIT: DecisionMemo = {
+    id: 'memo-storage-audit',
+    title: 'Deep Storage Utilization',
+    from: 'Facilities & Archives',
+    body: [
+        "Attention.",
+        "Deep storage utilization has reached 98%.",
+        "The heat output from the 'Archival' basement is exceeding safe parameters.",
+        "We are initiating a purge of old records to make space for new... data.",
+        "Your employment history is currently flagged as 'Expendable Data'.",
+        "Improve your standing, or you will be purged with the rest."
+    ],
+    options: [
+        {
+            label: "Work Faster. (Compliance)",
+            effectType: 'COOPERATE',
+            description: "Throughput +10, Stress +10",
+            statsDelta: { throughput: 10, stability: -10 }
+        },
+        {
+            label: "Backup My Files. (Resistance)",
             effectType: 'REFUSE',
-            description: "Scrutiny +30",
-            statsDelta: { scrutiny: 30 }
+            description: "Scrutiny +20, Variance +5",
+            statsDelta: { scrutiny: 20, variance: 5 }
+        }
+    ]
+};
+
+export const MEMO_FINAL_PREP: DecisionMemo = {
+    id: 'memo-final-prep',
+    title: 'MANDATORY: Day 365 Protocols',
+    from: 'Automated System',
+    body: [
+        "Attention Operator.",
+        "You are approaching the annual reset threshold (Day 365).",
+        "On Day 365, all temporary contracts are terminated. All biological assets are audited.",
+        "If you have any unfinished business, complete it now.",
+        "If you are planning to leave, the doors will be locked at 08:00."
+    ],
+    options: [
+        {
+            label: "I am ready. (Proceed)",
+            effectType: 'COOPERATE',
+            description: "Final Evaluation Begins",
+            statsDelta: { stability: 5 }
         }
     ]
 };
@@ -332,6 +382,16 @@ export const getReviewForShift = (gameState: GameState): DecisionMemo | null => 
     // LATE GAME INTERVENTION (Shift 7)
     if (gameState.shiftIndex === 7) {
         return MEMO_DIRECTOR_INTERVENTION;
+    }
+
+    // DEEP STORAGE (Shift 8 - Day 180)
+    if (gameState.shiftIndex === 8) {
+        return MEMO_STORAGE_AUDIT;
+    }
+
+    // THE SILENCE BEFORE THE END (Shift 9 - Day 240)
+    if (gameState.shiftIndex === 9) {
+        return MEMO_FINAL_PREP;
     }
 
     return null;

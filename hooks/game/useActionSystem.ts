@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GameState, ActionType, LogItem, FeedbackState, ExhibitId, EndingType } from '../../types';
 import { HOUSE_RULES, TRAPS } from '../../constants';
 import { audio } from '../../services/audioService';
@@ -38,6 +38,7 @@ export const useActionSystem = (
         let feedback: FeedbackState | null = null;
         let isCorrect = false;
         let awarenessDelta = 0;
+        let deferShiftInc = 0;
         
         let cCorrect = prev.consecutiveCorrect;
         let cWrong = prev.consecutiveWrong;
@@ -67,15 +68,19 @@ export const useActionSystem = (
                 cCorrect++; cWrong = 0;
             }
         } 
-        // --- DEFERRAL (Stress Relief) ---
+        // --- DEFERRAL (Stress Relief with Scaling Penalty) ---
         else if (effectiveAction === ActionType.DEFER) {
-            influenceDelta = 5; 
-            stressDelta = -15; 
-            dailySafetyDelta = -5;
+            // FIX: Defer gets more expensive and dangerous per use in a shift
+            const costFactor = prev.deferCountShift;
+            
+            influenceDelta = 5 + costFactor; 
+            stressDelta = -20 + (costFactor * 5); // Returns diminishing returns (-20, -15, -10...)
+            dailySafetyDelta = -5 - (costFactor * 3); // Safety hit increases
             processedInc = 1; 
             hauntDelta = 2; 
             cWrong = 0; 
             cCorrect = 0; 
+            deferShiftInc = 1;
             
             // OLLIE GHOST SPAWN CHANCE
             if (prev.shiftIndex >= 6 && prev.flags.evidenceCount > 0 && Math.random() < 0.4) {
@@ -92,31 +97,41 @@ export const useActionSystem = (
         } 
         // --- STANDARD LOGIC ---
         else if (currentLog) {
-            const activeRules = HOUSE_RULES.filter(r => prev.activeRuleIds.includes(r.id));
-            const violations = currentLog.redFlagTags.filter(tag => activeRules.some(r => r.tags.includes(tag)));
-            const isHazard = violations.length > 0;
+            // FIX: AMENDMENT LOGIC (Monkey's Paw)
+            // 1. Get IDs of rules voided by Amendments
+            const amendedRuleIds = prev.activeAmendments.map(a => a.ruleId);
+            
+            // 2. Calculate Bureaucratic Violations (Legal Truth)
+            const activeRules = HOUSE_RULES.filter(r => prev.activeRuleIds.includes(r.id) && !amendedRuleIds.includes(r.id));
+            const bureaucraticViolations = currentLog.redFlagTags.filter(tag => activeRules.some(r => r.tags.includes(tag)));
+            const isBureaucraticHazard = bureaucraticViolations.length > 0;
 
+            // 3. Calculate Actual Violations (Real Truth)
+            const actualViolations = currentLog.redFlagTags.filter(tag => HOUSE_RULES.some(r => r.tags.includes(tag)));
+            const isActualHazard = actualViolations.length > 0;
+
+            // COST CALCULATION
             let baseActionCost = 8;
             const influenceFactor = Math.floor(prev.influence / 20); 
             const difficultyFactor = (currentLog.difficulty || 1) - 1; 
-            const actionFactor = (effectiveAction === ActionType.CONTAIN) ? 2 : 0; 
+            const actionFactor = (effectiveAction === ActionType.CONTAIN) ? 4 : 0; // Contain is much more draining
             const totalCost = baseActionCost + influenceFactor + difficultyFactor + actionFactor;
-            const appliedStress = Math.min(13, Math.max(5, totalCost));
+            const appliedStress = Math.min(20, Math.max(5, totalCost));
             
             stressDelta += appliedStress;
 
             if (effectiveAction === ActionType.CONTAIN) {
-                if (isHazard) {
+                if (isBureaucraticHazard) {
                     dailySafetyDelta = 5; 
                     // REDUCE INFLUENCE: Containing a hazard is an act of will against the entities.
                     influenceDelta = -2;
-                    feedback = { type: 'CORRECT', message: `THREAT IDENTIFIED: ${violations.join(', ')}` };
+                    feedback = { type: 'CORRECT', message: `THREAT IDENTIFIED: ${bureaucraticViolations.join(', ')}` };
                     isCorrect = true;
                     audio.playSuccess();
                     cCorrect++; cWrong = 0;
                 } else {
                     dailySafetyDelta = -10; 
-                    stressDelta += 5; 
+                    stressDelta += 10; // Punishment for false positive
                     feedback = { type: 'WRONG', message: 'FALSE POSITIVE: NO VIOLATIONS FOUND' };
                     audio.playFailure();
                     cWrong++; cCorrect = 0;
@@ -124,10 +139,11 @@ export const useActionSystem = (
             } else if (effectiveAction === ActionType.LOG) {
                 const isRedactedEnough = isRedaction && extraData && extraData.redactionCount > 0;
 
-                if (isHazard && !isRedactedEnough) {
+                if (isBureaucraticHazard && !isRedactedEnough) {
+                    // Standard failure: You saw the red flag but logged it anyway.
                     dailySafetyDelta = -20; 
                     influenceDelta = 5;
-                    feedback = { type: 'WRONG', message: `MISSED VIOLATION: ${violations.join(', ')}` };
+                    feedback = { type: 'WRONG', message: `MISSED VIOLATION: ${bureaucraticViolations.join(', ')}` };
                     
                     if (isSurge) {
                         audio.playSuccess(); 
@@ -137,10 +153,24 @@ export const useActionSystem = (
                     }
                     cWrong++; cCorrect = 0;
                 } else {
-                    dailySafetyDelta = 0; 
-                    feedback = { type: 'CORRECT', message: isRedactedEnough ? 'HAZARD SANITIZED' : 'SAFE DATA ARCHIVED' };
+                    // SUCCESS (on paper)
+                    // Logic check for "Gaslighting": If it was an actual hazard but permitted by amendment
+                    const wasHiddenByAmendment = isActualHazard && !isBureaucraticHazard;
+                    
+                    if (wasHiddenByAmendment) {
+                        // THE HORROR: You followed the rules, but the facility rots.
+                        dailySafetyDelta = -5; // Subtle damage
+                        influenceDelta = 2; // You are complicit
+                        feedback = { type: 'CORRECT', message: 'APPROVED BY AMENDMENT (NOTE: INTEGRITY DRAIN DETECTED)' };
+                        // Play a slightly warped success sound?
+                        audio.playSuccess();
+                    } else {
+                        dailySafetyDelta = 0; 
+                        feedback = { type: 'CORRECT', message: isRedactedEnough ? 'HAZARD SANITIZED' : 'SAFE DATA ARCHIVED' };
+                        audio.playSuccess();
+                    }
+                    
                     isCorrect = true;
-                    audio.playSuccess();
                     cCorrect++; cWrong = 0;
                 }
             }
@@ -179,8 +209,6 @@ export const useActionSystem = (
             }
         }
         
-        // P3: AMENDMENT WAR TRIGGER CHECK MOVED TO USEGAME/SHIFT
-
         let currentEvent = prev.activeEvent;
         let durationRemaining = prev.activeEventDurationRemaining;
 
@@ -210,6 +238,7 @@ export const useActionSystem = (
             stress: newStress,
             logsProcessedInShift: prev.logsProcessedInShift + processedInc,
             deferCountGlobal: newDeferCount,
+            deferCountShift: prev.deferCountShift + deferShiftInc,
             gameOverReason: gameOver,
             pendingTrap: pendingTrap,
             activeEvent: currentEvent,

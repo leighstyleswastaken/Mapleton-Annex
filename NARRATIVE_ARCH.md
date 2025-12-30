@@ -62,3 +62,12 @@ The game is played over **10 Shifts** (simulating a year of time compression).
 | 7 | 120 | **Rule Rot** | Rules start disappearing/lying on the board. |
 | 8 | 240 | **Amendment War** | Mog forces you to Sign/Veto rule changes. |
 | 9 | 365 | **The End** | Final evaluation. |
+
+## 5. Late Game Mechanics: The Monkey's Paw
+
+The late game (Shifts 7+) introduces **Amendments**. These are not just flavor text.
+*   If Mog offers "Rule 4 is Void", and you sign it:
+    *   Logs that violate Rule 4 (Charm) will **no longer trigger visual warnings**.
+    *   If you Log them (Green), the game gives you a **Success Chime**.
+    *   **HOWEVER**, the underlying Entity is still dangerous. You take invisible damage to **Facility Integrity**.
+    *   This gaslights the player: You are following the rules you signed, but the facility is dying because you compromised.

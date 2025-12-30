@@ -71,7 +71,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     handleDragEnd,
     targetFreq,
     isInZone,
-    isInSpoofZone
+    isInSpoofZone,
+    setIsInteractingWithText // NEW
   } = useTerminal({ 
       currentLog, 
       isProcessing, 
@@ -232,13 +233,9 @@ export const Terminal: React.FC<TerminalProps> = ({
 
   // --- STICKY NOTE LOGIC ---
   const activeStickyNote = useMemo(() => {
-      
-      // 1. DIRECTIVE LOGIC (The "Test")
-      // If after lunch (processed > 4), small chance to spawn a Command Note
       if (logsProcessedInShift > 4 && shiftIndex > 2) {
-          const testChance = 0.3; // 30% chance per log post-lunch to be tested
+          const testChance = 0.3; 
           if (Math.random() < testChance) {
-              // Find a directive note not yet seen
               const validDirectives = DIRECTIVE_STICKY_NOTES.filter(n => 
                   !gameState.seenStickyNotes.includes(n.id) &&
                   (n.triggerShift === undefined || shiftIndex >= n.triggerShift)
@@ -251,7 +248,6 @@ export const Terminal: React.FC<TerminalProps> = ({
           }
       }
 
-      // 2. STANDARD LORE LOGIC (Fallback)
       return STICKY_NOTES.find(note => {
           if (gameState.seenStickyNotes.includes(note.id)) return false;
           if (note.triggerShift !== undefined && shiftIndex < note.triggerShift) return false;
@@ -262,11 +258,11 @@ export const Terminal: React.FC<TerminalProps> = ({
           }
           return true;
       });
-  }, [shiftIndex, logsProcessedInShift, gameState.seenStickyNotes, gameState.flags, currentLog?.id]); // Recalc on new log
+  }, [shiftIndex, logsProcessedInShift, gameState.seenStickyNotes, gameState.flags, currentLog?.id]); 
   
   const handleDismissNote = () => {
       if (activeStickyNote) {
-          audio.playKeystroke(); // Tearing sound substitute
+          audio.playKeystroke(); 
           onNoteDismiss(activeStickyNote.id);
       }
   };
@@ -279,7 +275,6 @@ export const Terminal: React.FC<TerminalProps> = ({
     const isCorrupted = theme.mode === 'CORRUPTED';
     const isPremium = theme.mode === 'PREMIUM';
 
-    // Burnout disables interactions
     const isDisabled = isProcessing || isBurnout;
     const disabledClass = isDisabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-green-900';
     const disabledClassRed = isDisabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-red-900';
@@ -287,11 +282,9 @@ export const Terminal: React.FC<TerminalProps> = ({
     const isTooNoisy = signalNoise > 20;
     const conflictClass = conflictingRules ? 'animate-pulse ring-4 ring-yellow-500' : '';
 
-    // Button Labels
     let logLabel = 'LOG';
     let containLabel = 'CONTAIN';
     
-    // Logic for DEAD KEYS label feedback
     const logClicks = clickCountMap['LOG'] || 0;
     const containClicks = clickCountMap['CONTAIN'] || 0;
 
@@ -321,13 +314,11 @@ export const Terminal: React.FC<TerminalProps> = ({
         containLabel = 'SELECT VIOLATION';
     }
     
-    // Dead Key Override Labels
     if (hasDeadKeys) {
         if (logClicks === 1) logLabel = '[CONFIRM LOG?]';
         if (containClicks === 1) containLabel = '[CONFIRM CONTAIN?]';
     }
 
-    // Styles for MOG_FINAL
     const mogFinalLogClass = isMogFinal 
         ? 'bg-pink-100 border-pink-400 text-pink-600 hover:bg-pink-200 rounded-3xl h-24 text-2xl shadow-[0_0_30px_rgba(236,72,153,0.4)] border-4'
         : '';
@@ -397,7 +388,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     );
   };
 
-  const totalTasks = gameState.isTutorial ? 4 : 8; // Tutorial is now 4 steps (Boot + 3 Mechanics)
+  const totalTasks = gameState.isTutorial ? 4 : 8; 
   const taskItems = Array.from({ length: totalTasks }).map((_, i) => {
     const isCompleted = i < logsProcessedInShift;
     const isCurrent = i === logsProcessedInShift;
@@ -405,8 +396,8 @@ export const Terminal: React.FC<TerminalProps> = ({
   });
 
   return (
-    <div className={`flex flex-col h-full bg-[#111] relative overflow-hidden p-6 border-r-4 border-black ${stress > 90 ? 'shake' : ''} ${theme.mode === 'OLLIE' ? 'bg-[#f5e6d3]' : ''} ${theme.mode === 'MOG_FINAL' ? 'bg-[#fff0f5]' : ''}`}>
-      {/* --- BACKGROUND OVERLAYS --- */}
+    <div className={`flex flex-col h-full bg-[#111] relative overflow-hidden p-4 md:p-6 border-r-4 border-black ${stress > 90 ? 'shake' : ''} ${theme.mode === 'OLLIE' ? 'bg-[#f5e6d3]' : ''} ${theme.mode === 'MOG_FINAL' ? 'bg-[#fff0f5]' : ''}`}>
+      {/* ... (Backgrounds remain same) ... */}
       {!['OLLIE', 'MOG', 'MOG_FINAL', 'HARDSHIP'].includes(theme.mode) && <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(18,50,30,0)_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none z-10"></div>}
       {theme.mode === 'MOG' && <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(216,180,254,0.05)_0%,rgba(0,0,0,0.4)_100%)] pointer-events-none z-10"></div>}
       {theme.mode === 'MOG_FINAL' && <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,192,203,0.15)_0%,rgba(255,255,255,0.4)_100%)] pointer-events-none z-10"></div>}
@@ -418,7 +409,6 @@ export const Terminal: React.FC<TerminalProps> = ({
       {isRedactionEvent && <div className="absolute inset-0 bg-gray-900/30 pointer-events-none z-10 mix-blend-multiply"></div>}
       {isBurstEvent && <div className="absolute inset-0 bg-orange-500/10 pointer-events-none z-10 animate-pulse mix-blend-overlay"></div>}
 
-      {/* --- ANNEX AWARENESS (Stable) --- */}
       {annexAwareness > 0 && (
           <div className="absolute inset-0 pointer-events-none z-0 opacity-20 overflow-hidden">
               {activeScrawls.map((scrawl) => (
@@ -438,7 +428,7 @@ export const Terminal: React.FC<TerminalProps> = ({
           </div>
       )}
 
-      {/* --- HIGH CORTISOL WARNING (P1.5) --- */}
+      {/* --- HIGH CORTISOL WARNING --- */}
       {stress > 80 && !isShiftEnding && (
           <div className="absolute top-16 left-0 w-full text-center z-40 pointer-events-none">
               <span className="bg-red-900 text-red-100 px-4 py-1 text-xs font-bold animate-pulse border border-red-500 tracking-widest shadow-lg">
@@ -468,14 +458,14 @@ export const Terminal: React.FC<TerminalProps> = ({
       {/* --- HEADER --- */}
       <div className={`flex justify-between items-start mb-6 border-b pb-2 z-20 ${header.borderClass}`}>
         <div>
-          <h1 className={`text-xl ${header.titleClass}`}>
+          <h1 className={`text-lg md:text-xl ${header.titleClass}`}>
             {header.title}
           </h1>
           <span className={`${theme.mode === 'MOG' ? 'text-purple-700' : (theme.mode === 'MOG_FINAL' ? 'text-pink-600' : 'text-green-800')} text-xs uppercase`}>{header.subtitle}</span>
         </div>
         
         <div className="text-right flex flex-col items-end">
-             <div className={`text-xl font-bold font-mono mb-1 tracking-widest ${theme.mode === 'MOG' ? 'text-purple-300' : (theme.mode === 'OLLIE' ? 'text-[#5c4033]' : (theme.mode === 'MOG_FINAL' ? 'text-pink-400' : 'text-green-400'))}`}>{timeString}</div>
+             <div className={`text-lg md:text-xl font-bold font-mono mb-1 tracking-widest ${theme.mode === 'MOG' ? 'text-purple-300' : (theme.mode === 'OLLIE' ? 'text-[#5c4033]' : (theme.mode === 'MOG_FINAL' ? 'text-pink-400' : 'text-green-400'))}`}>{timeString}</div>
              <div className="flex space-x-1 mt-1" title="Remaining Tasks">
                 {taskItems.map((item) => {
                     if (theme.mode === 'MOG_FINAL') {
@@ -506,7 +496,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                             </span>
                         );
                     }
-                    // Fallback for DEFAULT, HARDSHIP, DEBUG, PREMIUM, CORRUPTED, AERO
                     return (
                         <div 
                             key={item.index} 
@@ -549,17 +538,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                 </div>
             </div>
         ) : currentLog ? (
-            // MIRROR TRANSFORMATION
-            <div className={`w-full max-w-2xl border p-8 transition-all duration-500 relative overflow-hidden ${theme.container} ${isMirrorEvent ? 'scale-x-[-1]' : ''}`}>
+            <div className={`w-full max-w-2xl border p-4 md:p-8 transition-all duration-500 relative overflow-hidden ${theme.container} ${isMirrorEvent ? 'scale-x-[-1]' : ''}`}>
                 
-                {/* BIG STAMP */}
                 <div className={`absolute top-4 right-4 pointer-events-none opacity-20 transform rotate-12 select-none`}>
-                    <span className={`text-6xl font-black font-mono border-4 border-dashed p-2 ${theme.stamp}`}>
+                    <span className={`text-4xl md:text-6xl font-black font-mono border-4 border-dashed p-2 ${theme.stamp}`}>
                         {displayName}
                     </span>
                 </div>
                 
-                {/* THE STICKY NOTE (Dynamic Selection) */}
                 {activeStickyNote && !isOllie && (
                     <StickyNote 
                         text={activeStickyNote.text} 
@@ -571,7 +557,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                     />
                 )}
 
-                {/* Header Info */}
                 <div className="flex justify-between mb-8 text-xs font-mono relative z-10">
                     <span className={`${theme.id}`}>ID: {currentLog.id}</span>
                     {currentLog.logKind === 'OLLIE_GHOST' && <span className="text-red-500 animate-pulse font-bold">DETECTED: GHOST SIGNAL</span>}
@@ -579,7 +564,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 </div>
 
                 <SignalTuner 
-                    key={currentLog.id} // FORCE RE-MOUNT ON LOG CHANGE TO FIX DRIFT
+                    key={currentLog.id}
                     value={tunerValue} 
                     onDrag={handleDrag} 
                     onDragStart={handleDragStart}
@@ -601,6 +586,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     isGlitchEvent={!!isGlitchEvent}
                     showWarning={showWarning}
                     isRedactionMode={!!isRedactionEvent}
+                    onHoverText={(isHover) => setIsInteractingWithText(isHover)}
                 />
 
                 <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 relative z-10`}>

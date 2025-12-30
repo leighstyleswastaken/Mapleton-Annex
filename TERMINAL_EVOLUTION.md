@@ -56,6 +56,6 @@ Mog offers help when you **Defer** tasks (showing weakness). The offer depends o
 | Effect | Trigger | Description |
 |---|---|---|
 | **Ghost ID** | `rank` Hover | Hovering over your Rank changes the text to "OLLIE" or "SUBJECT 0". |
-| **Black Ice** | `stress` > 90 & `influence` > 80 | The Stress meter turns Cyan. The label changes to "EUPHORIA". The music (if any) would warp. |
+| **Black Ice** | `stress` > 90 & `influence` > 80 | The Stress meter turns Cyan. The label changes to "EUPHORIA". **Visual Deception**: The meter visually drops by 30%, making you feel safe while you are actually moments from a breakdown. |
 | **Wall Scrawls** | `annexAwareness` > 0 | Text like "THEY EAT TIME" appears faintly on the terminal background. |
 | **Button Theft** | Shift > 7 & High Influence | The "Contain" button is physically removed from the DOM 15% of the time, replaced by an "[OPTIMIZED]" label. |

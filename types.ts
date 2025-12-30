@@ -94,7 +94,8 @@ export enum EndingType {
   THAWED = 'THAWED',      // Rail C: Archivist Escape
   MANAGER = 'MANAGER',    // Rail A: Promotion to Director
   OVERRUN = 'OVERRUN',    // Rail D: Mog takes over
-  OLLIE_ASCENSION = 'OLLIE_ASCENSION' 
+  OLLIE_ASCENSION = 'OLLIE_ASCENSION',
+  PLACEHOLDER = 'PLACEHOLDER' // New Dev Ending
 }
 
 export interface Trap {
@@ -137,12 +138,13 @@ export interface LunchEvent {
     speaker: string;
     role: string;
     text: string[];
-    choices: LunchChoice[]; 
+    choices: LunchChoice[];
+    isForced?: boolean; // If true, player cannot choose to sit elsewhere
 }
 
 export interface EmailOption {
     label: string;
-    effect: 'NONE' | 'SIGN_HARDSHIP' | 'CLIP_EVIDENCE' | 'REPORT_INCIDENT' | 'ARCHIVE';
+    effect: 'NONE' | 'SIGN_HARDSHIP' | 'CLIP_EVIDENCE' | 'REPORT_INCIDENT' | 'ARCHIVE' | 'PROMOTION';
     style?: 'default' | 'danger' | 'safe';
 }
 
@@ -189,6 +191,11 @@ export interface StickyNoteDef {
     reqFlag?: string;
 }
 
+export interface LunchLog {
+    day: number;
+    summary: string;
+}
+
 export interface GameState {
   runId: string;
   shiftIndex: number; 
@@ -204,6 +211,7 @@ export interface GameState {
   queue: LogItem[];
   logsProcessedInShift: number;
   deferCountGlobal: number; 
+  deferCountShift: number; // NEW: Reset daily to throttle Defer usage
   consecutiveCorrect: number; 
   consecutiveWrong: number;   
   
@@ -231,7 +239,8 @@ export interface GameState {
   
   // Trackers to prevent repeats
   seenStickyNotes: string[];
-  seenLogIds: string[]; // NEW: Prevents daily repeats of static logs
+  seenLogIds: string[]; 
+  pastLunchLogs: LunchLog[]; // NEW: History of lunch interactions
 
   isShiftActive: boolean;
   isShiftEnding: boolean;

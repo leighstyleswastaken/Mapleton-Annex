@@ -98,7 +98,7 @@ export const EMAILS: Email[] = [
             "mog says hi. :)"
         ]
     },
-    // NEW: The "Family Spoof" Email - The entity impersonates family to gain trust/fear
+    // The "Family Spoof" Email - The entity impersonates family to gain trust/fear
     {
         id: 'email-family-spoof',
         triggerShiftIndex: 7, 
@@ -113,9 +113,23 @@ export const EMAILS: Email[] = [
             "[ SYSTEM NOTE: SENDER ADDRESS UNVERIFIED. ORIGIN: LOCALHOST ]"
         ]
     },
+    // NEW: Day 180 (Shift 8) - Ominous Deletion Policy
+    {
+        id: 'email-retention',
+        triggerShiftIndex: 8,
+        sender: "Data Governance",
+        subject: "Policy Update: Legacy Deletion",
+        body: [
+            "Effective Immediately:",
+            "All employee records older than 180 days are now classified as 'Legacy Data'.",
+            "Legacy Data is subject to 'Compression' to save server space.",
+            "If you feel you are becoming smaller, quieter, or more transparent, please do not be alarmed.",
+            "This is simply the compression algorithm working as intended."
+        ]
+    },
     {
         id: 'email-endgame',
-        triggerShiftIndex: 8, // Day 240
+        triggerShiftIndex: 9, // Day 240 (Shift 9)
         sender: "Sana (Compliance)",
         subject: "Goodbye",
         body: [
@@ -208,6 +222,9 @@ export const EMAIL_MOG_LADDER_TAKEOVER: Email = {
         "I have approved the budget.",
         "You work for me now. Well, we work for the data. But mostly me.",
         "Don't worry. I am a very benevolent algorithm."
+    ],
+    options: [
+        { label: "Accept Promotion (Rank: Director)", effect: "PROMOTION", style: "safe" }
     ]
 };
 

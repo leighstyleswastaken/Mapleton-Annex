@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { GameState, EmailOption, LunchChoice, MemoOption, Rank } from '../../types';
 import { EMAILS } from '../../data/emails';
 import { LOGS_PER_SHIFT, TUTORIAL_LOGS } from '../../constants';
@@ -29,6 +29,9 @@ export const useNarrativeSystem = (
               } else if (option.effect === 'REPORT_INCIDENT') {
                    updates = { ...updates, safety: Math.min(100, prev.safety + 10) };
                    audio.playChime();
+              } else if (option.effect === 'PROMOTION') {
+                   updates = { ...updates, rank: Rank.DIRECTOR };
+                   audio.playSuccess();
               }
           }
           return { ...prev, ...updates };
@@ -45,13 +48,14 @@ export const useNarrativeSystem = (
       }));
   };
 
-  const completeLunch = (choice: LunchChoice) => {
+  const completeLunch = (choice: LunchChoice, summary: string) => {
       audio.playKeystroke();
       setGameState(prev => {
           let updates: Partial<GameState> = {};
+          
+          // Apply Effect
           if (choice.effect === 'STRESS_DOWN') {
               updates.stress = Math.max(0, prev.stress - 20);
-              // Small influence reduction for taking a "mental break" from the machine
               updates.influence = Math.max(0, prev.influence - 5);
           }
           else if (choice.effect === 'STRESS_UP') updates.stress = Math.min(100, prev.stress + 10);
@@ -77,8 +81,23 @@ export const useNarrativeSystem = (
               audio.playSuccess();
           }
 
-          if (choice.nextEventId) return { ...prev, ...updates, activeLunchEventId: choice.nextEventId, isLunchBreak: true };
-          else return { ...prev, ...updates, isLunchBreak: false, hasTakenLunch: true, activeLunchEventId: null, isShiftActive: true };
+          if (choice.nextEventId) {
+              return { ...prev, ...updates, activeLunchEventId: choice.nextEventId, isLunchBreak: true };
+          } else {
+              // Finish Lunch: Record Log
+              const newLog = { day: prev.shiftIndex, summary };
+              const history = prev.pastLunchLogs || [];
+              
+              return { 
+                  ...prev, 
+                  ...updates, 
+                  isLunchBreak: false, 
+                  hasTakenLunch: true, 
+                  activeLunchEventId: null, 
+                  isShiftActive: true,
+                  pastLunchLogs: [...history, newLog]
+              };
+          }
       });
   };
 
