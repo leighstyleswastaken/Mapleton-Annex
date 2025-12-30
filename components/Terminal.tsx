@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { ActionType, LogItem, GameEvent, FeedbackState, GameState, Rank } from '../types';
 import { HOUSE_RULES, STICKY_NOTES, DIRECTIVE_STICKY_NOTES } from '../constants';
@@ -69,7 +70,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     handleDragStart,
     handleDragEnd,
     targetFreq,
-    isInZone
+    isInZone,
+    isInSpoofZone
   } = useTerminal({ 
       currentLog, 
       isProcessing, 
@@ -577,6 +579,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 </div>
 
                 <SignalTuner 
+                    key={currentLog.id} // FORCE RE-MOUNT ON LOG CHANGE TO FIX DRIFT
                     value={tunerValue} 
                     onDrag={handleDrag} 
                     onDragStart={handleDragStart}
@@ -584,6 +587,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     targetFreq={targetFreq}
                     isInZone={isInZone}
                     isBeautified={theme.mode === 'MOG' || theme.mode === 'MOG_FINAL'}
+                    isSpoofedLock={isInSpoofZone}
                 />
 
                 <TerminalScreen 

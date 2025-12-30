@@ -108,6 +108,8 @@ export const useActionSystem = (
             if (effectiveAction === ActionType.CONTAIN) {
                 if (isHazard) {
                     dailySafetyDelta = 5; 
+                    // REDUCE INFLUENCE: Containing a hazard is an act of will against the entities.
+                    influenceDelta = -2;
                     feedback = { type: 'CORRECT', message: `THREAT IDENTIFIED: ${violations.join(', ')}` };
                     isCorrect = true;
                     audio.playSuccess();

@@ -215,6 +215,7 @@ export interface GameState {
   // P3: AMENDMENTS
   activeAmendments: Amendment[]; 
   pendingAmendment: Amendment | null; 
+  lastAmendmentLogCount: number; // NEW: Cooldown tracker for amendments
   
   // NARRATIVE FLAGS
   flags: {
@@ -228,8 +229,9 @@ export interface GameState {
       sanaCorruptionLevel: number; 
   };
   
-  // NEW: Track dismissed notes to prevent repetition
+  // Trackers to prevent repeats
   seenStickyNotes: string[];
+  seenLogIds: string[]; // NEW: Prevents daily repeats of static logs
 
   isShiftActive: boolean;
   isShiftEnding: boolean;

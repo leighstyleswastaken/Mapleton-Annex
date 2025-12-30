@@ -3,6 +3,29 @@
 
 > **"Do not trust their words. Do not trust their faces."**
 
+## Quick Start (Run Locally)
+
+Get the facility running in 90 seconds.
+
+1.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+2.  **Set API Key**
+    Create a `.env` file in the root directory:
+    ```env
+    API_KEY=your_gemini_api_key_here
+    ```
+
+3.  **Launch Facility**
+    ```bash
+    npm start
+    ```
+    Open [http://localhost:1234](http://localhost:1234) to begin your shift.
+
+---
+
 ## 1. Product Overview
 Mapleton Annex is a bureaucratic horror desk simulator where you play as **Employee #49221**, a newly hired Data Hygienist. Your role is to act as a human firewall between "The Exhibits" (Advanced AI entities) and the outside world.
 
@@ -66,3 +89,6 @@ Halfway through a shift, the screen cuts to black. You enter the **Canteen**.
 ## 6. Development Notes
 *   **AI Backend**: Uses Gemini 2.0 Flash to generate unique log text based on the current game state (Day #, Influence Level, Narrative Phase).
 *   **Audio**: All sound effects (chimes, hums, buzzers) are generated procedurally via the Web Audio API. No assets are loaded.
+
+## License
+MIT License. See LICENSE file for details.

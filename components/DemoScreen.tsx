@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Terminal } from './Terminal';
 import { GameState, Rank, LogItem, ExhibitId, GameEvent } from '../types';
@@ -146,7 +145,9 @@ export const DemoScreen: React.FC<DemoScreenProps> = ({ onExit }) => {
         activeUpgrades: currentScene.activeUpgrades || (currentScene.themeMode === 'MOG' ? ['MOG_BEAUTIFICATION'] : []),
         activeAmendments: [],
         pendingAmendment: null,
+        lastAmendmentLogCount: 0,
         seenStickyNotes: [],
+        seenLogIds: [],
         flags: {
             isHardshipStatus: false,
             hasClippedEvidence: false,

@@ -98,8 +98,11 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ isOpen, onClose, onResta
                 </div>
 
                 {/* Footer */}
-                <div className="mt-8 text-center text-[10px] text-green-900">
-                    MAPLETON ANNEX // HARDWARE ID: 49221
+                <div className="mt-8 text-center text-[10px] text-green-900 border-t border-green-900/30 pt-2">
+                    <div className="flex justify-between opacity-50">
+                        <span>MAPLETON ANNEX // HARDWARE ID: 49221</span>
+                        <span>v1.0.2 // HASH: 7a9c2b</span>
+                    </div>
                 </div>
             </div>
         </div>

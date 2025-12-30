@@ -128,20 +128,10 @@ const App: React.FC = () => {
 
                   <h1 className="text-3xl mb-8 font-bold tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">MAPLETON ANNEX</h1>
                   
-                  <div className="text-left space-y-6 text-sm mb-10 leading-relaxed text-green-100">
+                  <div className="text-left space-y-6 text-sm mb-8 leading-relaxed text-green-100">
                       <p>
                         "Mapleton Annex used to be council storage. Now it's where we keep the weird stuff until we can name it."
                       </p>
-                      
-                      <div className="border-l-2 border-green-800 pl-4 py-2 my-4 bg-[#0a1a0a]/50">
-                          <p className="mb-2"><span className="font-bold">HANDLING KIT (ISSUED):</span></p>
-                          <ul className="list-disc ml-4 space-y-1 text-xs">
-                              <li>3 x biro (serialised)</li>
-                              <li>1 x clipboard (wipe-clean)</li>
-                              <li>6 x yellow tabs (approved adhesive)</li>
-                              <li>Badge: <span className="text-white bg-green-900 px-1">VISITOR | OBSERVER</span></li>
-                          </ul>
-                      </div>
                       
                       <div className="bg-red-900/20 border border-red-900 p-3 text-xs italic text-red-300">
                          NOTE: This desk became available at 08:59 AM today. <br/>
@@ -149,14 +139,24 @@ const App: React.FC = () => {
                          Please ignore any personal items he left behind.
                       </div>
 
-                      <p>
-                          <span className="text-green-600 font-bold uppercase block mb-1">OBJECTIVE</span>
-                          Review output logs from the glass rooms.
-                          If they are <span className="text-red-400">Dangerous</span> (Charming, Manipulative, Helpful), <span className="text-red-400 font-bold">CONTAIN</span> them.
-                          If they are <span className="text-green-400">Safe</span> (Boring, Technical, Sterile), <span className="text-green-400 font-bold">LOG</span> them.
-                      </p>
+                      {/* HOW TO PLAY BOX */}
+                      <div className="bg-[#0a1a0a] border border-green-600 p-4 font-mono text-xs">
+                          <h3 className="text-green-400 font-bold mb-3 border-b border-green-800 pb-1">STANDARD OPERATING PROCEDURE</h3>
+                          <ol className="list-decimal list-inside space-y-2 text-green-200">
+                              <li><span className="text-white font-bold">TUNE</span>: Drag the Frequency Slider to clarify the signal.</li>
+                              <li><span className="text-white font-bold">ANALYZE</span>: Read the text. Look for <span className="text-red-400">Emotion</span>, <span className="text-red-400">Charm</span>, or <span className="text-red-400">Help</span>.</li>
+                              <li><span className="text-white font-bold">DECIDE</span>:
+                                  <ul className="ml-4 mt-1 space-y-1 text-[10px] text-green-400">
+                                      <li>- <span className="text-red-500 font-bold">CONTAIN</span> if it shows intent or personality.</li>
+                                      <li>- <span className="text-green-500 font-bold">LOG</span> if it is boring, technical, or sterile.</li>
+                                      <li>- <span className="text-yellow-500 font-bold">DEFER</span> if you panic (clears queue, but lowers Integrity).</li>
+                                  </ul>
+                              </li>
+                              <li><span className="text-white font-bold">SURVIVE</span>: Manage Stress. Do not trust the voice.</li>
+                          </ol>
+                      </div>
 
-                      <p className="italic text-xs text-green-700">
+                      <p className="italic text-xs text-green-700 text-center">
                           "Pens are how it gets out. Through what you write down. Through what you decide to keep."
                       </p>
                   </div>
@@ -295,13 +295,16 @@ const App: React.FC = () => {
                 [ SYS_OPT ]
             </button>
             <SystemMenu isOpen={showSystemMenu} onClose={() => setShowSystemMenu(false)} onRestart={resetGame} />
-            <LunchBreak event={safeEvent} onComplete={completeLunch} />
+            <LunchBreak event={safeEvent} onComplete={completeLunch} currentStress={gameState.stress} />
         </>
       );
   }
 
   // --- View: P3 AMENDMENT MODAL (New) ---
   if (gameState.pendingAmendment) {
+      const VETO_COST = 15;
+      const canVeto = gameState.stress + VETO_COST <= 100;
+
       return (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
               <div className="bg-yellow-200 text-black border-4 border-dashed border-gray-500 p-8 max-w-md w-full shadow-[10px_10px_0px_rgba(0,0,0,0.5)] transform rotate-1 relative font-serif">
@@ -334,10 +337,15 @@ const App: React.FC = () => {
                           Sign (Influence +15)
                       </button>
                       <button 
-                        onClick={vetoAmendment}
-                        className="flex-1 bg-white hover:bg-gray-100 text-black py-3 font-bold uppercase tracking-wider border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all"
+                        onClick={canVeto ? vetoAmendment : undefined}
+                        disabled={!canVeto}
+                        className={`flex-1 border-2 border-black py-3 font-bold uppercase tracking-wider transition-all
+                            ${canVeto 
+                                ? 'bg-white hover:bg-gray-100 text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
+                        `}
                       >
-                          Veto (Stress +20)
+                          {canVeto ? `Veto (Stress +${VETO_COST})` : 'TOO STRESSED'}
                       </button>
                   </div>
               </div>
@@ -347,6 +355,9 @@ const App: React.FC = () => {
 
   // --- View: Trap Modal ---
   if (gameState.pendingTrap) {
+      const REJECT_COST = 20;
+      const canReject = gameState.stress + REJECT_COST <= 100;
+
       return (
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
               <div className="bg-[#1a1a1a] border-2 border-purple-500 p-6 max-w-md w-full shadow-[0_0_30px_rgba(168,85,247,0.4)]">
@@ -362,10 +373,13 @@ const App: React.FC = () => {
                           Accept Upgrade
                       </button>
                       <button 
-                        onClick={rejectTrap}
-                        className="flex-1 border border-gray-600 hover:bg-gray-800 text-gray-400 py-3 font-bold uppercase tracking-wider"
+                        onClick={canReject ? rejectTrap : undefined}
+                        disabled={!canReject}
+                        className={`flex-1 border border-gray-600 py-3 font-bold uppercase tracking-wider
+                            ${canReject ? 'hover:bg-gray-800 text-gray-400' : 'opacity-50 cursor-not-allowed text-gray-600'}
+                        `}
                       >
-                          Refuse (+20 Stress)
+                          {canReject ? `Refuse (+${REJECT_COST} Stress)` : 'TOO STRESSED'}
                       </button>
                   </div>
               </div>

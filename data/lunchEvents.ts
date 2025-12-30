@@ -266,7 +266,7 @@ export const GENERIC_LUNCH: LunchEvent = {
     text: [], // Populated dynamically
     choices: [
         { text: "Stare back.", effect: 'NONE' },
-        { text: "Close your eyes (Stress -5)", effect: 'STRESS_DOWN' }
+        { text: "Close your eyes (Stress -5, Influence -5)", effect: 'STRESS_DOWN' }
     ]
 };
 

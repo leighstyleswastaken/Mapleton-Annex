@@ -32,7 +32,7 @@ const StatBar: React.FC<{ label: string; value: number; inverse?: boolean }> = (
 };
 
 export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ gameState, onMakeDecision }) => {
-    const { weeklyStats, pendingReview } = gameState;
+    const { weeklyStats, pendingReview, stress } = gameState;
 
     if (!pendingReview) return null;
 
@@ -107,22 +107,43 @@ export const WeeklyReview: React.FC<WeeklyReviewProps> = ({ gameState, onMakeDec
                      <div className="mt-8 border-t-2 border-dashed border-gray-400 pt-6">
                         <p className="font-bold text-sm uppercase mb-4 text-gray-500">Select Response:</p>
                         <div className="grid grid-cols-1 gap-4">
-                            {pendingReview.options.map((opt, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => handleSelect(opt)}
-                                    className="text-left border-2 border-black p-4 hover:bg-black hover:text-white transition-colors group"
-                                >
-                                    <div className="font-bold text-md mb-1 group-hover:text-yellow-400">
-                                        [ ] {opt.label}
-                                    </div>
-                                    {opt.description && (
-                                        <div className="text-xs font-mono opacity-60 ml-6 group-hover:opacity-100">
-                                            Effect: {opt.description}
+                            {pendingReview.options.map((opt, i) => {
+                                // Calculate if this option adds stress
+                                let stressCost = 0;
+                                // Stability reduction = Stress increase
+                                if (opt.statsDelta?.stability && opt.statsDelta.stability < 0) {
+                                    stressCost = Math.abs(opt.statsDelta.stability);
+                                }
+                                
+                                const disabled = stressCost > 0 && (stress + stressCost > 100);
+
+                                return (
+                                    <button
+                                        key={i}
+                                        onClick={() => !disabled && handleSelect(opt)}
+                                        disabled={disabled}
+                                        className={`text-left border-2 border-black p-4 transition-colors group flex justify-between items-center
+                                            ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-200' : 'hover:bg-black hover:text-white'}
+                                        `}
+                                    >
+                                        <div>
+                                            <div className="font-bold text-md mb-1 group-hover:text-yellow-400">
+                                                [ ] {opt.label}
+                                            </div>
+                                            {opt.description && (
+                                                <div className="text-xs font-mono opacity-60 ml-6 group-hover:opacity-100">
+                                                    Effect: {opt.description}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </button>
-                            ))}
+                                        {disabled && (
+                                            <div className="text-xs font-bold text-red-600 uppercase">
+                                                [TOO MUCH STRESS]
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                      </div>
                 </div>

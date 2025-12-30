@@ -59,14 +59,29 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
 
     // Is the tuner currently in the good zone?
     // We calculate this based on TRUE target
-    const dist = Math.abs(tunerValue - trueTargetFreq);
-    const isInZone = dist < (SWEET_SPOT_WIDTH / 2);
+    const distTrue = Math.abs(tunerValue - trueTargetFreq);
+    const isInZone = distTrue < (SWEET_SPOT_WIDTH / 2);
+
+    // "Spoof Zone" check: Are we tuned to the visual lie?
+    const distSpoof = Math.abs(tunerValue - displayTargetFreq);
+    // Only consider it a "Spoof Zone" if it's NOT the true zone (avoid overlap logic)
+    const isInSpoofZone = currentLog?.visualSpoofId 
+        ? (distSpoof < (SWEET_SPOT_WIDTH / 2) && !isInZone)
+        : false;
 
     // "Signal Quality" determines text readability.
-    const signalQuality = (isInZone && !isDragging) || hasAutoTuner ? 100 : 0;
+    // If True Lock: 100% (Perfect)
+    // If Spoof Lock: 80% (Readable but with artifacts/grain, allows player to read text)
+    // Else: 0%
+    const signalQuality = (isInZone && !isDragging) || hasAutoTuner 
+        ? 100 
+        : (isInSpoofZone && !isDragging ? 80 : 0);
     
     // Base noise is high if untuned
-    const effectiveNoiseLevel = signalQuality === 100 ? 0 : Math.max(85, currentLog?.baseNoiseLevel || 85);
+    // If Spoof Zone (80% quality), noise is low enough to read (e.g. 15), but not 0.
+    const effectiveNoiseLevel = signalQuality === 100 
+        ? 0 
+        : (signalQuality === 80 ? 15 : Math.max(85, currentLog?.baseNoiseLevel || 85));
 
     // RESET / SETUP when log changes
     useEffect(() => {
@@ -167,6 +182,7 @@ export const useTerminal = ({ currentLog, isProcessing, lastFeedback, activeUpgr
         handleDragStart,
         handleDragEnd,
         targetFreq: displayTargetFreq, // Use display (potentially spoofed)
-        isInZone 
+        isInZone,
+        isInSpoofZone // New export for UI feedback
     };
 };

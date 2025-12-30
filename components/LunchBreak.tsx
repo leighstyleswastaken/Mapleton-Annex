@@ -5,11 +5,14 @@ import { LunchEvent, LunchChoice } from '../types';
 interface LunchBreakProps {
     event: LunchEvent;
     onComplete: (choice: LunchChoice) => void;
+    currentStress: number;
 }
 
-export const LunchBreak: React.FC<LunchBreakProps> = ({ event, onComplete }) => {
+export const LunchBreak: React.FC<LunchBreakProps> = ({ event, onComplete, currentStress }) => {
   // If no choices defined (legacy/generic), provide a default
   const choices = event.choices && event.choices.length > 0 ? event.choices : [{ text: "Return to Desk", effect: 'NONE' }];
+
+  const STRESS_COST = 10; // Standard cost for STRESS_UP choices
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-[#111] font-mono p-8 relative overflow-hidden">
@@ -47,20 +50,28 @@ export const LunchBreak: React.FC<LunchBreakProps> = ({ event, onComplete }) => 
             </div>
 
             <div className="border-t border-gray-800 pt-6 flex flex-col gap-3">
-                {choices.map((choice, idx) => (
-                     <button 
-                        key={idx}
-                        onClick={() => onComplete(choice as LunchChoice)}
-                        className={`w-full text-left px-6 py-4 uppercase font-bold text-sm tracking-widest transition-all border
-                            ${choice.effect === 'UNLOCK_MOG_UPGRADE' 
-                                ? 'bg-purple-900/30 border-purple-500 hover:bg-purple-900 text-purple-200' 
-                                : 'bg-gray-900 border-green-900 hover:bg-green-900 text-gray-300 hover:text-white'}
-                        `}
-                    >
-                        <span className="mr-4 opacity-50">&gt;</span>
-                        {choice.text}
-                    </button>
-                ))}
+                {choices.map((choice, idx) => {
+                     const isStressful = choice.effect === 'STRESS_UP';
+                     const disabled = isStressful && (currentStress + STRESS_COST > 100);
+                     
+                     return (
+                         <button 
+                            key={idx}
+                            onClick={() => !disabled && onComplete(choice as LunchChoice)}
+                            disabled={disabled}
+                            className={`w-full text-left px-6 py-4 uppercase font-bold text-sm tracking-widest transition-all border
+                                ${choice.effect === 'UNLOCK_MOG_UPGRADE' 
+                                    ? 'bg-purple-900/30 border-purple-500 hover:bg-purple-900 text-purple-200' 
+                                    : 'bg-gray-900 border-green-900 hover:bg-green-900 text-gray-300 hover:text-white'}
+                                ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+                            `}
+                        >
+                            <span className="mr-4 opacity-50">&gt;</span>
+                            {choice.text}
+                            {disabled && <span className="float-right text-red-500 text-xs animate-pulse">[TOO MUCH STRESS]</span>}
+                        </button>
+                     );
+                })}
             </div>
         </div>
     </div>

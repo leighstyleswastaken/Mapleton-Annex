@@ -9,6 +9,7 @@ interface SignalTunerProps {
     targetFreq: number; // The visual target (might be spoofed)
     isInZone: boolean; // The real logic check
     isBeautified: boolean;
+    isSpoofedLock?: boolean; // New prop for ghost signal
 }
 
 export const SignalTuner: React.FC<SignalTunerProps> = ({ 
@@ -18,13 +19,20 @@ export const SignalTuner: React.FC<SignalTunerProps> = ({
     onDragEnd, 
     targetFreq, 
     isInZone, 
-    isBeautified 
+    isBeautified,
+    isSpoofedLock = false
 }) => {
     
     // Visual colors
-    const lockedColor = isBeautified ? 'bg-purple-400' : 'bg-green-500';
-    const driftColor = isBeautified ? 'bg-purple-900' : 'bg-amber-700';
+    let lockedColor = isBeautified ? 'bg-purple-400' : 'bg-green-500';
+    let driftColor = isBeautified ? 'bg-purple-900' : 'bg-amber-700';
     const zoneColor = isBeautified ? 'bg-purple-500/20' : 'bg-green-500/20';
+    
+    // Spoof overrides
+    if (isSpoofedLock) {
+        lockedColor = 'bg-yellow-500'; // Amber warning color
+        driftColor = 'bg-yellow-700';
+    }
 
     return (
         <div className={`w-full mb-4 p-2 border relative select-none ${isBeautified ? 'border-purple-800 bg-purple-900/10' : 'border-amber-900/50 bg-[#1a1205]'}`}>
@@ -32,8 +40,8 @@ export const SignalTuner: React.FC<SignalTunerProps> = ({
                 <span className={`text-[10px] font-mono uppercase tracking-widest ${isBeautified ? 'text-purple-400' : 'text-amber-600'}`}>
                     Frequency Tuner
                 </span>
-                <span className={`text-[10px] font-mono transition-colors duration-300 ${isInZone ? (isBeautified ? 'text-purple-300' : 'text-green-500') : 'text-red-500'}`}>
-                    {isInZone ? "LOCKED" : "DRIFTING"}
+                <span className={`text-[10px] font-mono transition-colors duration-300 ${isInZone ? (isBeautified ? 'text-purple-300' : 'text-green-500') : (isSpoofedLock ? 'text-yellow-500 animate-pulse' : 'text-red-500')}`}>
+                    {isInZone ? "LOCKED" : (isSpoofedLock ? "DECODING... (UNVERIFIED)" : "DRIFTING")}
                 </span>
             </div>
             
@@ -68,11 +76,11 @@ export const SignalTuner: React.FC<SignalTunerProps> = ({
 
                 {/* The Physical Tuning Needle/Thumb */}
                 <div 
-                    className={`absolute top-0 bottom-0 w-1 -ml-0.5 z-10 transition-all duration-75 ${isInZone ? lockedColor : driftColor} shadow-[0_0_10px_currentColor]`}
+                    className={`absolute top-0 bottom-0 w-1 -ml-0.5 z-10 transition-all duration-75 ${isInZone || isSpoofedLock ? lockedColor : driftColor} shadow-[0_0_10px_currentColor]`}
                     style={{ left: `${value}%` }}
                 >
-                    <div className={`absolute -top-1 -left-1.5 w-4 h-2 ${isInZone ? lockedColor : driftColor}`}></div>
-                    <div className={`absolute -bottom-1 -left-1.5 w-4 h-2 ${isInZone ? lockedColor : driftColor}`}></div>
+                    <div className={`absolute -top-1 -left-1.5 w-4 h-2 ${isInZone || isSpoofedLock ? lockedColor : driftColor}`}></div>
+                    <div className={`absolute -bottom-1 -left-1.5 w-4 h-2 ${isInZone || isSpoofedLock ? lockedColor : driftColor}`}></div>
                 </div>
             </div>
             

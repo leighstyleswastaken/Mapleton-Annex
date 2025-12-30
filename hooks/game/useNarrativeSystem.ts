@@ -49,7 +49,11 @@ export const useNarrativeSystem = (
       audio.playKeystroke();
       setGameState(prev => {
           let updates: Partial<GameState> = {};
-          if (choice.effect === 'STRESS_DOWN') updates.stress = Math.max(0, prev.stress - 20);
+          if (choice.effect === 'STRESS_DOWN') {
+              updates.stress = Math.max(0, prev.stress - 20);
+              // Small influence reduction for taking a "mental break" from the machine
+              updates.influence = Math.max(0, prev.influence - 5);
+          }
           else if (choice.effect === 'STRESS_UP') updates.stress = Math.min(100, prev.stress + 10);
           else if (choice.effect === 'INFLUENCE_UP') updates.influence = Math.min(100, prev.influence + 10);
           else if (choice.effect === 'UNLOCK_MOG_UPGRADE') {
@@ -108,7 +112,8 @@ export const useNarrativeSystem = (
               activeAmendments: [...prev.activeAmendments, am],
               pendingAmendment: null,
               influence: Math.min(100, prev.influence + 15),
-              safety: am.cost === 'SAFETY' ? Math.max(0, prev.safety - 10) : prev.safety
+              safety: am.cost === 'SAFETY' ? Math.max(0, prev.safety - 10) : prev.safety,
+              lastAmendmentLogCount: prev.totalLogsProcessed // RESET TIMER
           };
       });
   };
@@ -118,8 +123,9 @@ export const useNarrativeSystem = (
       setGameState(prev => ({
           ...prev,
           pendingAmendment: null,
-          stress: Math.min(100, prev.stress + 20),
-          influence: Math.max(0, prev.influence - 5)
+          stress: Math.min(100, prev.stress + 15), // Reduced from 20 to 15
+          influence: Math.max(0, prev.influence - 5),
+          lastAmendmentLogCount: prev.totalLogsProcessed // RESET TIMER
       }));
   };
 
@@ -151,7 +157,12 @@ export const useNarrativeSystem = (
 
   const rejectTrap = () => {
       audio.playBuzzer();
-      setGameState(prev => ({ ...prev, pendingTrap: null, stress: Math.min(100, prev.stress + 20) }));
+      setGameState(prev => ({ 
+          ...prev, 
+          pendingTrap: null, 
+          stress: Math.min(100, prev.stress + 20),
+          influence: Math.max(0, prev.influence - 5) // Influence Reduction for resisting
+      }));
   };
 
   return {

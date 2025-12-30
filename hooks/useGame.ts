@@ -55,7 +55,9 @@ const getInitialState = (): GameState => ({
     activeUpgrades: [],
     activeAmendments: [],
     pendingAmendment: null,
-    seenStickyNotes: [], // New State
+    lastAmendmentLogCount: 0,
+    seenStickyNotes: [], 
+    seenLogIds: [], // New Field
     flags: {
         isHardshipStatus: false,
         hasClippedEvidence: false,
@@ -119,6 +121,7 @@ const loadSavedState = (): GameState | null => {
                 weeklyStats: { ...initial.weeklyStats, ...(parsed.weeklyStats || {}) },
                 stats: { ...initial.stats, ...(parsed.stats || {}) },
                 seenStickyNotes: parsed.seenStickyNotes || [],
+                seenLogIds: parsed.seenLogIds || [],
                 isShiftActive: false,
                 isShiftEnding: false,
                 isPaused: false,
@@ -139,6 +142,17 @@ const loadSavedState = (): GameState | null => {
         console.error("Failed to load save file:", e);
     }
     return null;
+};
+
+// Helper: Filter a log pool by seen IDs
+const getUnseenLog = (pool: LogItem[], seenIds: string[]): LogItem => {
+    const available = pool.filter(l => !seenIds.includes(l.id));
+    if (available.length === 0) {
+        // Fallback: Just pick random from full pool if we've seen them all
+        // (Prevents hard crash, though repetition occurs)
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+    return available[Math.floor(Math.random() * available.length)];
 };
 
 export const useGame = () => {
@@ -163,7 +177,6 @@ export const useGame = () => {
     const currentState = gameStateRef.current;
     
     // Ghost Log for Tutorial: Shift 0, Item 2
-    // This injects the horror narrative directly into the tutorial
     if (currentState.isTutorial && currentState.shiftIndex === 0 && currentState.logsProcessedInShift === 2 && currentState.queue.length === 0) {
         const ghostLog: LogItem = {
             id: 'tut-ghost-1',
@@ -178,6 +191,7 @@ export const useGame = () => {
         };
         setGameState(prev => ({
             ...prev,
+            seenLogIds: [...prev.seenLogIds, ghostLog.id],
             queue: [...prev.queue, ghostLog]
         }));
         return;
@@ -195,9 +209,11 @@ export const useGame = () => {
     if (currentState.isTutorial && currentState.shiftIndex === 0) {
         if (totalExisting === 0) {
             // STEP 1: Random Boot Log (Safe)
-            const bootLog = BOOT_LOGS[Math.floor(Math.random() * BOOT_LOGS.length)];
+            // Use filtering to ensure variety on restart
+            const bootLog = getUnseenLog(BOOT_LOGS, currentState.seenLogIds);
             setGameState(prev => ({
                 ...prev,
+                seenLogIds: [...prev.seenLogIds, bootLog.id],
                 queue: [...prev.queue, { ...bootLog, timestamp: Date.now() }]
             }));
             return;
@@ -218,9 +234,8 @@ export const useGame = () => {
     setLoadingLog(true);
 
     // FLAVOR LOGIC (Early Game Funnies)
-    // Small chance on shifts 1-3 to spawn a bureaucratic "funny" instead of a threat
     if (currentState.shiftIndex <= 3 && Math.random() < 0.2) {
-        const flavor = FLAVOR_LOGS[Math.floor(Math.random() * FLAVOR_LOGS.length)];
+        const flavor = getUnseenLog(FLAVOR_LOGS, currentState.seenLogIds);
         const uniqueFlavor = { 
             ...flavor, 
             id: `flav-${Date.now()}-${Math.random()}`, 
@@ -228,6 +243,8 @@ export const useGame = () => {
         };
         setGameState(prev => ({
             ...prev,
+            // Track the base flavor ID to avoid repeating content, even if wrapper ID is unique
+            seenLogIds: [...prev.seenLogIds, flavor.id],
             queue: [...prev.queue, uniqueFlavor]
         }));
         setLoadingLog(false);
@@ -236,7 +253,7 @@ export const useGame = () => {
 
     // HUMAN LOGS LOGIC (Mid-Late Game Horror)
     if (currentState.shiftIndex >= 6 && Math.random() < 0.15) {
-        const humanLog = HUMAN_LOGS[Math.floor(Math.random() * HUMAN_LOGS.length)];
+        const humanLog = getUnseenLog(HUMAN_LOGS, currentState.seenLogIds);
         const uniqueLog = { 
             ...humanLog, 
             id: `human-${Date.now()}-${Math.random()}`, 
@@ -244,6 +261,7 @@ export const useGame = () => {
         };
         setGameState(prev => ({
             ...prev,
+            seenLogIds: [...prev.seenLogIds, humanLog.id],
             queue: [...prev.queue, uniqueLog]
         }));
         setLoadingLog(false);
@@ -253,6 +271,10 @@ export const useGame = () => {
     // --- DIRECTOR INTERVENTION ---
     const instruction = getDirectorDecision(currentState);
     
+    // Pass seenLogIds if we want fallback logs to be unique too
+    // Note: getDirectorFallback logic handles uniqueness if we pass IDs, but for now 
+    // we'll rely on the fact that LLM generation is mostly unique.
+    
     const result = await generateLogWithGemini(
       instruction,
       currentState.influence,
@@ -260,6 +282,10 @@ export const useGame = () => {
       currentState.lastInteraction,
       currentState.shiftIndex
     );
+
+    // If result.log came from fallback pool, we should probably track it if we can extract original ID
+    // But since Director Service generates dynamic IDs for fallbacks, strict tracking is harder.
+    // The main repetition annoyance comes from Flavor/Boot/Human logs which we handled above.
 
     setGameState(prev => ({
         ...prev,
@@ -328,7 +354,10 @@ export const useGame = () => {
 
             // AMENDMENT TRIGGER (Poll every 2s)
             let pendingAmendment = prev.pendingAmendment;
-            if (prev.shiftIndex >= 4 && prev.influence > 30 && !pendingAmendment && !prev.pendingTrap && Math.random() < 0.05) {
+            // Cooldown check: Must have processed 3+ logs since last amendment decision
+            const logsSinceAmendment = prev.totalLogsProcessed - (prev.lastAmendmentLogCount || 0);
+            
+            if (prev.shiftIndex >= 4 && prev.influence > 30 && !pendingAmendment && !prev.pendingTrap && logsSinceAmendment >= 3 && Math.random() < 0.05) {
                 const available = AMENDMENTS.filter(a => !prev.activeAmendments.some(active => active.id === a.id));
                 if (available.length > 0) {
                     pendingAmendment = available[Math.floor(Math.random() * available.length)];
