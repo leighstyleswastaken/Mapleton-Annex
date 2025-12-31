@@ -3,6 +3,21 @@
 
 > **"Do not trust their words. Do not trust their faces."**
 
+## Play (Live)
+Live build: https://mapleton-annex.vercel.app/
+
+## Feedback (Bugs, ideas, balance)
+Please open an issue:
+- Bug report / glitch: https://github.com/leighstyleswastaken/Mapleton-Annex/issues/new/choose
+- General issues list: https://github.com/leighstyleswastaken/Mapleton-Annex/issues
+
+If you are reporting a bug, include:
+- what you clicked (steps)
+- what you expected
+- what happened instead
+- browser + device
+- screenshot if possible
+
 ## Quick Start (Run Locally)
 
 Get the facility running in 90 seconds.
