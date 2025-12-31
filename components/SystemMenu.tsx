@@ -80,6 +80,15 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ isOpen, onClose, onResta
                     >
                         Resume Session
                     </button>
+
+                    <a 
+                        href="https://github.com/leighstyleswastaken/Mapleton-Annex/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full py-3 border border-green-900 text-green-700 hover:bg-green-900/30 hover:text-green-400 uppercase font-bold tracking-widest transition-colors text-center text-xs"
+                    >
+                        Report Anomaly [Feedback]
+                    </a>
                     
                     <button 
                         onClick={handleRestartClick}

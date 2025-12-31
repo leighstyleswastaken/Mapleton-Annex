@@ -199,6 +199,17 @@ const App: React.FC = () => {
                           DEMO
                       </button>
                   </div>
+
+                  <div className="mt-8 text-[10px] text-green-900 tracking-widest uppercase">
+                      <a 
+                        href="https://github.com/leighstyleswastaken/Mapleton-Annex/issues" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="hover:text-green-500 border-b border-transparent hover:border-green-500 transition-all"
+                      >
+                          [ Submit Feedback / Report Bug ]
+                      </a>
+                  </div>
               </div>
           </div>
       );
