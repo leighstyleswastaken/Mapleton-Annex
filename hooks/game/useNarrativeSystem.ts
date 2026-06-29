@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { GameState, EmailOption, LunchChoice, MemoOption, Rank } from '../../types';
 import { EMAILS } from '../../data/emails';
@@ -53,7 +52,6 @@ export const useNarrativeSystem = (
       setGameState(prev => {
           let updates: Partial<GameState> = {};
           
-          // Apply Effect
           if (choice.effect === 'STRESS_DOWN') {
               updates.stress = Math.max(0, prev.stress - 20);
               updates.influence = Math.max(0, prev.influence - 5);
@@ -84,10 +82,8 @@ export const useNarrativeSystem = (
           if (choice.nextEventId) {
               return { ...prev, ...updates, activeLunchEventId: choice.nextEventId, isLunchBreak: true };
           } else {
-              // Finish Lunch: Record Log
               const newLog = { day: prev.shiftIndex, summary };
               const history = prev.pastLunchLogs || [];
-              
               return { 
                   ...prev, 
                   ...updates, 
@@ -104,20 +100,44 @@ export const useNarrativeSystem = (
   const handleReviewDecision = (option: MemoOption) => {
       setGameState(prev => {
           let updates: Partial<GameState> = { isReviewPhase: false, pendingReview: null };
-          if (option.statsDelta?.stability) updates.stress = Math.max(0, Math.min(100, prev.stress - (option.statsDelta.stability || 0)));
+          const nextFlags = { ...prev.flags };
+
+          if (option.statsDelta?.stability) updates.stress = Math.max(0, Math.min(100, prev.stress - option.statsDelta.stability));
+          if (option.statsDelta?.auditability) updates.safety = Math.max(0, Math.min(100, prev.safety + Math.round(option.statsDelta.auditability / 2)));
+          if (option.statsDelta?.dossierCount) {
+              nextFlags.evidenceCount = Math.max(0, nextFlags.evidenceCount + option.statsDelta.dossierCount);
+              nextFlags.hasClippedEvidence = nextFlags.evidenceCount > 0;
+          }
+          if (option.statsDelta?.rapport) {
+              const raw = option.statsDelta.rapport;
+              const step = Math.sign(raw) * Math.max(1, Math.round(Math.abs(raw) / 10));
+              nextFlags.mogRapport = Math.max(0, nextFlags.mogRapport + step);
+          }
+
           if (option.effectType === 'PROMOTION') {
               const ranks = Object.values(Rank);
               const currentIdx = ranks.indexOf(prev.rank);
               if (currentIdx < ranks.length - 1) updates.rank = ranks[currentIdx + 1];
               audio.playSuccess();
-          } else if (option.effectType === 'HARDSHIP_ACCEPT') updates.flags = { ...prev.flags, isHardshipStatus: true };
+          } else if (option.effectType === 'HARDSHIP_ACCEPT') {
+              nextFlags.isHardshipStatus = true;
+          } else if (option.effectType === 'HARDSHIP_REJECT') {
+              nextFlags.isHardshipStatus = false;
+              updates.stress = Math.min(100, (updates.stress ?? prev.stress) + 10);
+          } else if (option.effectType === 'LEAK') {
+              nextFlags.hasClippedEvidence = true;
+              nextFlags.evidenceCount += 1;
+              updates.safety = Math.max(0, (updates.safety ?? prev.safety) - 5);
+              updates.stress = Math.min(100, (updates.stress ?? prev.stress) + 10);
+              audio.playKeystroke();
+          }
 
           const safetyImpact = Math.round((prev.dailySafety - 70) / 2);
-          const newGlobalSafety = Math.min(100, Math.max(0, prev.safety + safetyImpact));
+          const newGlobalSafety = Math.min(100, Math.max(0, (updates.safety ?? prev.safety) + safetyImpact));
           const nextShiftIndex = prev.shiftIndex + 1;
           const nextEmail = EMAILS.find(e => e.triggerShiftIndex === nextShiftIndex);
 
-          return { ...prev, ...updates, safety: newGlobalSafety, shiftIndex: nextShiftIndex, isTutorial: false, activeEmail: nextEmail || null };
+          return { ...prev, ...updates, flags: nextFlags, safety: newGlobalSafety, shiftIndex: nextShiftIndex, isTutorial: false, activeEmail: nextEmail || null };
       });
   };
 
@@ -132,7 +152,7 @@ export const useNarrativeSystem = (
               pendingAmendment: null,
               influence: Math.min(100, prev.influence + 15),
               safety: am.cost === 'SAFETY' ? Math.max(0, prev.safety - 10) : prev.safety,
-              lastAmendmentLogCount: prev.totalLogsProcessed // RESET TIMER
+              lastAmendmentLogCount: prev.totalLogsProcessed
           };
       });
   };
@@ -142,9 +162,9 @@ export const useNarrativeSystem = (
       setGameState(prev => ({
           ...prev,
           pendingAmendment: null,
-          stress: Math.min(100, prev.stress + 15), // Reduced from 20 to 15
+          stress: Math.min(100, prev.stress + 15),
           influence: Math.max(0, prev.influence - 5),
-          lastAmendmentLogCount: prev.totalLogsProcessed // RESET TIMER
+          lastAmendmentLogCount: prev.totalLogsProcessed
       }));
   };
 
@@ -180,7 +200,7 @@ export const useNarrativeSystem = (
           ...prev, 
           pendingTrap: null, 
           stress: Math.min(100, prev.stress + 20),
-          influence: Math.max(0, prev.influence - 5) // Influence Reduction for resisting
+          influence: Math.max(0, prev.influence - 5)
       }));
   };
 

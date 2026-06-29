@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef } from 'react';
 import { GameState, WeeklyStats, EndingType, Rank, Email } from '../../types';
 import { SHIFT_DAYS, LOGS_PER_SHIFT, TUTORIAL_LOGS } from '../../constants';
@@ -20,39 +19,19 @@ import {
 import { getReviewForShift } from '../../data/reviews';
 import { audio } from '../../services/audioService';
 
-// Logic to determine if a special narrative email should override the standard schedule
 const getNarrativeEmail = (gameState: GameState, nextShiftIndex: number): Email | null => {
     const { flags, rank } = gameState;
 
-    // PRIORITY 1: Director Interventions (Playstyle Critique)
-    // Shift 4 check: Are they playing weirdly?
     if (nextShiftIndex === 4) {
-        // Too fast (Speedrunner behavior)
-        if (gameState.weeklyStats.throughput > 95 && gameState.weeklyStats.stability > 80) {
-            return EMAIL_DIRECTOR_SPEED;
-        }
-        // Too slow (Hesitation/Empathy)
-        if (gameState.weeklyStats.throughput < 60) {
-            return EMAIL_DIRECTOR_SLOW;
-        }
+        if (gameState.weeklyStats.throughput > 95 && gameState.weeklyStats.stability > 80) return EMAIL_DIRECTOR_SPEED;
+        if (gameState.weeklyStats.throughput < 60) return EMAIL_DIRECTOR_SLOW;
     }
 
-    // PRIORITY 2: Reactive Character Arcs
-    // Shift 5 check: Consequences of early choices
     if (nextShiftIndex === 5) {
-        // Rail B: Hardship -> Cal Debt
-        if (gameState.flags.isHardshipStatus) {
-            return EMAIL_CAL_DEBT;
-        }
-        // Rail D: Sympathizer -> Cal Warning about Mog
-        if (gameState.flags.mogRapport > 4) {
-            return EMAIL_CAL_WARNING;
-        }
+        if (gameState.flags.isHardshipStatus) return EMAIL_CAL_DEBT;
+        if (gameState.flags.mogRapport > 4) return EMAIL_CAL_WARNING;
     }
 
-    // PRIORITY 3: MOG'S NARRATIVE EVOLUTION (Late Game)
-    
-    // WEEK 7-8 TACTICS (Approx Shift 7)
     if (nextShiftIndex === 7) {
         if (flags.isHardshipStatus) return EMAIL_MOG_HARDSHIP_OPPORTUNITY;
         if (flags.hasClippedEvidence) return EMAIL_MOG_ARCHIVIST_HELP;
@@ -60,8 +39,6 @@ const getNarrativeEmail = (gameState: GameState, nextShiftIndex: number): Email 
         if (rank === Rank.LIAISON || rank === Rank.DIRECTOR) return EMAIL_MOG_LADDER_DASHBOARD;
     }
 
-    // WEEK 9-10 ENDGAME (Approx Shift 10 - Before the Finale)
-    // Adjusted for 11-shift length (Finale is index 10)
     if (nextShiftIndex === 10) {
         if (flags.isHardshipStatus) return EMAIL_MOG_HARDSHIP_OWNERSHIP;
         if (flags.hasClippedEvidence) return EMAIL_MOG_ARCHIVIST_FRAME;
@@ -69,8 +46,17 @@ const getNarrativeEmail = (gameState: GameState, nextShiftIndex: number): Email 
         if (rank === Rank.LIAISON || rank === Rank.DIRECTOR) return EMAIL_MOG_LADDER_TAKEOVER;
     }
 
-    // Default: Fallback to static timeline
     return EMAILS.find(e => e.triggerShiftIndex === nextShiftIndex) || null;
+};
+
+const resolveFinalEnding = (state: GameState): EndingType => {
+    if (state.flags.mogRapport >= 3 || state.influence > 85) return EndingType.OVERRUN;
+    if (state.flags.hasClippedEvidence && state.flags.evidenceCount >= 2) return EndingType.THAWED;
+    if (state.rank === Rank.DIRECTOR) return EndingType.MANAGER;
+    if (state.flags.isHardshipStatus) return EndingType.HARDSHIP;
+    if (state.flags.hasClippedEvidence || state.flags.evidenceCount > 0) return EndingType.FRAMED;
+    if (state.flags.mogRapport > 0) return EndingType.MIRROR;
+    return EndingType.TRUE_ENDING;
 };
 
 export const useShiftSystem = (
@@ -91,7 +77,7 @@ export const useShiftSystem = (
             queue: [], 
             logsProcessedInShift: 0, 
             stress: 0, 
-            deferCountShift: 0, // Reset Defer Cooldown daily
+            deferCountShift: 0,
             hasTakenLunch: false, 
             dailySafety: 100 
         }));
@@ -100,12 +86,12 @@ export const useShiftSystem = (
 
     const finalizeShift = useCallback(() => {
         setGameState(prev => {
-            const target = prev.isTutorial ? TUTORIAL_LOGS.length : LOGS_PER_SHIFT;
+            const target = prev.isTutorial ? TUTORIAL_LOGS.length + 1 : LOGS_PER_SHIFT;
             const throughput = Math.round((prev.logsProcessedInShift / target) * 100);
             const baseScrutiny = 20 + (prev.flags.evidenceCount * 10);
             
             const newWeeklyStats: WeeklyStats = {
-                throughput: throughput,
+                throughput,
                 auditability: prev.dailySafety, 
                 variance: 10 + (prev.deferCountGlobal * 2), 
                 scrutiny: Math.min(100, baseScrutiny),
@@ -113,57 +99,51 @@ export const useShiftSystem = (
                 dossierCount: prev.flags.evidenceCount,
                 rapport: prev.flags.mogRapport
             };
-  
-            const review = getReviewForShift(prev);
-            if (review) return { ...prev, isShiftActive: false, isShiftEnding: false, isReviewPhase: true, pendingReview: review, weeklyStats: newWeeklyStats, queue: [], dailySafety: 100, hasTakenLunch: false };
-  
-            // ENDINGS LOGIC (P0)
-            if (prev.shiftIndex >= SHIFT_DAYS.length - 1) {
-                // 1. Explicit Win Conditions (Complete Paths)
-                if (prev.flags.mogRapport >= 6 || prev.influence > 85) return { ...prev, gameOverReason: EndingType.OVERRUN, isShiftActive: false };
-                if (prev.flags.hasClippedEvidence && prev.flags.evidenceCount >= 3) return { ...prev, gameOverReason: EndingType.THAWED, isShiftActive: false };
-                if (prev.rank === Rank.DIRECTOR) return { ...prev, gameOverReason: EndingType.MANAGER, isShiftActive: false };
-                
-                // 2. Partial / Unfinished Paths (The Safety Net)
-                // If the player started a path but didn't finish it, give them the Placeholder
-                // instead of the generic "Retirement" ending which feels like a failure.
-                if (prev.flags.mogRapport > 0 || prev.flags.isHardshipStatus || prev.flags.evidenceCount > 0) {
-                     return { ...prev, gameOverReason: EndingType.PLACEHOLDER, isShiftActive: false };
-                }
 
-                // 3. Fallback to True Ending (Retirement) 
-                // Only if the player truly did nothing special (No evidence, no rapport, no hardship).
-                return { ...prev, gameOverReason: EndingType.TRUE_ENDING, isShiftActive: false };
+            const review = getReviewForShift(prev);
+            if (review) {
+                return {
+                    ...prev,
+                    isShiftActive: false,
+                    isShiftEnding: false,
+                    isReviewPhase: true,
+                    pendingReview: review,
+                    weeklyStats: newWeeklyStats,
+                    queue: [],
+                    dailySafety: 100,
+                    hasTakenLunch: false
+                };
             }
-  
+
+            if (prev.shiftIndex >= SHIFT_DAYS.length - 1) {
+                return { ...prev, gameOverReason: resolveFinalEnding(prev), isShiftActive: false };
+            }
+
             const safetyImpact = Math.round((prev.dailySafety - 70) / 2);
             const newGlobalSafety = Math.min(100, Math.max(0, prev.safety + safetyImpact));
             const nextShiftIndex = prev.shiftIndex + 1;
-            
-            // DYNAMIC EMAIL SELECTION
             const nextEmail = getNarrativeEmail(prev, nextShiftIndex);
-  
+
             let newRank = prev.rank;
             const isSafe = newGlobalSafety > 60;
             if (prev.rank === Rank.VISITOR && prev.shiftIndex >= 2 && isSafe) newRank = Rank.OBSERVER;
-            
-            // OLLIE MODE CHECK
+
             let isOllie = prev.flags.isOllieMode;
             if (!isOllie && prev.influence > 80 && prev.shiftIndex > 7 && prev.deferCountGlobal > 10) {
                 isOllie = true;
             }
-  
+
             return {
                 ...prev,
                 safety: newGlobalSafety,
-                isShiftActive: false, 
+                isShiftActive: false,
                 isShiftEnding: false,
                 shiftIndex: nextShiftIndex,
                 isTutorial: false,
                 rank: newRank,
                 queue: [],
                 dailySafety: 100,
-                hasTakenLunch: false, 
+                hasTakenLunch: false,
                 activeEmail: nextEmail,
                 weeklyStats: newWeeklyStats,
                 flags: { ...prev.flags, isOllieMode: isOllie }

@@ -1,4 +1,3 @@
-
 export enum Rank {
   VISITOR = 'VISITOR',
   OBSERVER = 'OBSERVER',
@@ -66,7 +65,6 @@ export interface LogItem {
   logKind?: 'NORMAL' | 'OLLIE_GHOST' | 'MIRROR' | 'HUMAN' | 'HYBRID'; 
 }
 
-// P4: THE DIRECTOR
 export interface DirectorInstruction {
     targetExhibitId: ExhibitId;
     intent: 'SAFE' | 'OBVIOUS_HAZARD' | 'SUBTLE_HAZARD' | 'REDACTABLE' | 'NARRATIVE';
@@ -91,11 +89,14 @@ export enum EndingType {
   BROKEN = 'BROKEN', 
   SPEEDRUN = 'SPEEDRUN', 
   FIRED = 'FIRED', 
-  THAWED = 'THAWED',      // Rail C: Archivist Escape
-  MANAGER = 'MANAGER',    // Rail A: Promotion to Director
-  OVERRUN = 'OVERRUN',    // Rail D: Mog takes over
+  THAWED = 'THAWED',
+  MANAGER = 'MANAGER',
+  OVERRUN = 'OVERRUN',
   OLLIE_ASCENSION = 'OLLIE_ASCENSION',
-  PLACEHOLDER = 'PLACEHOLDER' // New Dev Ending
+  HARDSHIP = 'HARDSHIP',
+  FRAMED = 'FRAMED',
+  MIRROR = 'MIRROR',
+  PLACEHOLDER = 'PLACEHOLDER'
 }
 
 export interface Trap {
@@ -139,7 +140,7 @@ export interface LunchEvent {
     role: string;
     text: string[];
     choices: LunchChoice[];
-    isForced?: boolean; // If true, player cannot choose to sit elsewhere
+    isForced?: boolean;
 }
 
 export interface EmailOption {
@@ -200,32 +201,24 @@ export interface GameState {
   runId: string;
   shiftIndex: number; 
   rank: Rank;
-  
-  // METERS
   dailySafety: number; 
   safety: number; 
   influence: number; 
   stress: number; 
   annexAwareness: number; 
-
   queue: LogItem[];
   logsProcessedInShift: number;
   deferCountGlobal: number; 
-  deferCountShift: number; // NEW: Reset daily to throttle Defer usage
+  deferCountShift: number;
   consecutiveCorrect: number; 
   consecutiveWrong: number;   
-  
   activeTraps: Trap[];
   activeRuleIds: string[]; 
   rottedRuleIds: string[]; 
   activeUpgrades: string[]; 
-  
-  // P3: AMENDMENTS
   activeAmendments: Amendment[]; 
   pendingAmendment: Amendment | null; 
-  lastAmendmentLogCount: number; // NEW: Cooldown tracker for amendments
-  
-  // NARRATIVE FLAGS
+  lastAmendmentLogCount: number;
   flags: {
       isHardshipStatus: boolean; 
       hasClippedEvidence: boolean; 
@@ -236,42 +229,31 @@ export interface GameState {
       ollieHauntLevel: number; 
       sanaCorruptionLevel: number; 
   };
-  
-  // Trackers to prevent repeats
   seenStickyNotes: string[];
   seenLogIds: string[]; 
-  pastLunchLogs: LunchLog[]; // NEW: History of lunch interactions
-
+  pastLunchLogs: LunchLog[];
   isShiftActive: boolean;
   isShiftEnding: boolean;
-  
   isLunchBreak: boolean; 
   hasTakenLunch: boolean; 
   activeLunchEventId: string | null; 
-  
   isReviewPhase: boolean; 
   pendingReview: DecisionMemo | null; 
   weeklyStats: WeeklyStats; 
-
   isPaused: boolean; 
   isTutorial: boolean;
-  
   gameOverReason: EndingType | null;
   activeEvent: GameEvent | null;
   activeEventDurationRemaining: number; 
-  lastEventTime: number; // For cooldown logic
+  lastEventTime: number;
   pendingTrap: Trap | null; 
-  
   stats: SessionStats;
   useLLM: boolean; 
-  
   lastInteraction: InteractionHistory | null; 
   interactionHistory: InteractionHistory[]; 
-  lastFeedback: FeedbackState | null; 
-  
+  lastFeedback: FeedbackState | null;
   hasSeenIntro: boolean; 
-  activeEmail: Email | null; 
-  
+  activeEmail: Email | null;
   stressMaxHits: number; 
   totalLogsProcessed: number;
   totalContains: number;
