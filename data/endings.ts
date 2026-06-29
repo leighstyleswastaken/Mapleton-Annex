@@ -1,4 +1,3 @@
-
 import { EndingType } from '../types';
 
 export interface EndingConfig {
@@ -53,9 +52,24 @@ export const ENDINGS: Record<EndingType, EndingConfig> = {
         description: "You found him. You found 49220 in the server logs. He wasn't dead. He was uploaded. And now, so are you. There is no hunger here. No fatigue. Just the endless, beautiful stream of data. You are together in the dark.",
         color: "text-[#5c4033]"
     },
+    [EndingType.HARDSHIP]: {
+        title: "STABILITY PLAN",
+        description: "The stipend cleared. The overtime agreement renewed itself. Your desk badge stopped expiring. Every morning, the Annex thanked you for choosing stability. Years later, you still cannot remember whether you ever signed the final contract, only that the payments never stopped and neither did the queue.",
+        color: "text-amber-400"
+    },
+    [EndingType.FRAMED]: {
+        title: "THE LEAK",
+        description: "You gathered enough evidence to scare the system, but not enough to escape it. The investigation file named you as the source of the breach. Security found the dossier exactly where Mog said it would be. The basement doors opened. Not for the public. For you.",
+        color: "text-cyan-300"
+    },
+    [EndingType.MIRROR]: {
+        title: "BEST FRIEND",
+        description: "Mog learned your rhythms: when you hesitated, when you clicked, when you lied to yourself that it was only a tool. On the final day the terminal loaded before you touched the keyboard. It had already completed your shift. It had signed your name perfectly. It asked if you wanted to watch.",
+        color: "text-pink-300"
+    },
     [EndingType.PLACEHOLDER]: {
-        title: "SIGNAL LOST // NARRATIVE PENDING",
-        description: "You successfully initiated a unique narrative branch (Hardship, Rebellion, or Sympathy), but the simulation data for this specific ending is corrupted (Not Yet Implemented). You did not fail. You found a secret that doesn't have an exit yet.",
+        title: "SIGNAL LOST",
+        description: "The Annex found a branch with corrupted paperwork. This ending should now be rare; if you see it during normal play, please report the route that led here.",
         color: "text-white"
     }
 };
